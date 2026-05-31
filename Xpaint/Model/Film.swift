@@ -69,9 +69,9 @@ extension Film {
 
 extension Film {
 
-	mutating func merge(_ f: Film) {
+	mutating func merge(_ f: Film, mask: Int = 0xF) {
 		withMutableLayer(0) { [fs = f.size, fc = f.size.count] ptr in
-			for frame in f.indices {
+			for frame in f.indices where mask & 1 << frame != 0 {
 				for (idx, px) in ptr.enumerated() {
 					ptr[idx] = px + f[fs.pxl(at: idx + frame * fc)]
 				}

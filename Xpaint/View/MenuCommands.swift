@@ -4,63 +4,66 @@ extension FocusedValues {
 	@Entry var operations: Operations?
 }
 
+extension Operations? {
+	var actionsDisabled: Bool { self?.state.dialogPresented ?? true }
+}
+
 struct MenuCommands: Commands {
 	@FocusedValue(\.operations) var op
 
 	var body: some Commands {
-		CommandGroup(replacing: .pasteboard) {
-			ActionButton(
-				name: "Cut",
-				image: "scissors",
-				shortcut: "X",
-				modifiers: .command,
-				disabled: op == nil,
-				action: { op?.cut() }
-			)
-			ActionButton(
-				name: "Copy",
-				image: "document.on.document",
-				shortcut: "C",
-				modifiers: .command,
-				disabled: op == nil,
-				action: { op?.copy() }
-			)
-			ActionButton(
-				name: "Paste",
-				image: "document.on.clipboard",
-				shortcut: "V",
-				modifiers: .command,
-				disabled: op == nil,
-				action: { op?.paste() }
-			)
+		if !op.actionsDisabled {
+			CommandGroup(replacing: .pasteboard) {
+				ActionButton(
+					name: "Cut",
+					image: "scissors",
+					shortcut: "X",
+					modifiers: .command,
+					action: { op?.cut() }
+				)
+				ActionButton(
+					name: "Copy",
+					image: "document.on.document",
+					shortcut: "C",
+					modifiers: .command,
+					action: { op?.copy() }
+				)
+				ActionButton(
+					name: "Paste",
+					image: "document.on.clipboard",
+					shortcut: "V",
+					modifiers: .command,
+					action: { op?.paste() }
+				)
+			}
 		}
 		CommandGroup(before: .windowSize) {
 			ActionButton(
 				name: "Size to fit",
 				image: "arrow.up.left.and.down.right.magnifyingglass",
 				shortcut: "9",
-				disabled: op == nil,
+				disabled: op.actionsDisabled,
 				action: { op?.scaleToFit() }
 			)
 			ActionButton(
 				name: "Actual size",
 				image: "1.magnifyingglass",
 				shortcut: "0",
-				disabled: op == nil,
+				disabled: op.actionsDisabled,
 				action: { op?.state.setScale(1.0) }
 			)
 			ActionButton(
 				name: "Zoom out",
 				image: "minus.magnifyingglass",
 				shortcut: "-",
-				disabled: op == nil,
+				disabled: op.actionsDisabled,
 				action: { op?.state.setScale((op?.state.magnification ?? 1.0) / 2.0) }
 			)
 			ActionButton(
 				name: "Zoom in",
 				image: "plus.magnifyingglass",
 				shortcut: "=",
-				disabled: op == nil,
+				disabled: op.actionsDisabled,
 				action: { op?.state.setScale((op?.state.magnification ?? 1.0) * 2.0) }
 			)
 			Divider()
@@ -71,7 +74,7 @@ struct MenuCommands: Commands {
 				image: "square.resize",
 				shortcut: "R",
 				modifiers: .command,
-				disabled: op == nil,
+				disabled: op.actionsDisabled,
 				action: { op?.state.sizeDialogPresented = true }
 			)
 			ActionButton(
@@ -79,7 +82,7 @@ struct MenuCommands: Commands {
 				image: "windshield.rear.and.wiper",
 				shortcut: "W",
 				modifiers: .control,
-				disabled: op == nil,
+				disabled: op.actionsDisabled,
 				action: { op?.wipeLayer() }
 			)
 			Divider()
@@ -88,21 +91,21 @@ struct MenuCommands: Commands {
 				image: "sum",
 				shortcut: "G",
 				modifiers: .command,
-				disabled: op == nil,
+				disabled: op.actionsDisabled,
 				action: { op?.makeMonochrome() }
 			)
 			ActionButton(
 				name: "Shift left",
 				image: "chevron.left.2",
 				shortcut: "<",
-				disabled: op == nil,
+				disabled: op.actionsDisabled,
 				action: { op?.shiftLeft() }
 			)
 			ActionButton(
 				name: "Shift right",
 				image: "chevron.right.2",
 				shortcut: ">",
-				disabled: op == nil,
+				disabled: op.actionsDisabled,
 				action: { op?.shiftRight() }
 			)
 			Divider()
@@ -112,7 +115,7 @@ struct MenuCommands: Commands {
 					image: "record.circle.fill",
 					shortcut: "E",
 					modifiers: .control,
-					disabled: op == nil,
+					disabled: op.actionsDisabled,
 					action: { op?.state.shaderDialogPresented = true }
 				)
 				ActionButton(
@@ -120,7 +123,7 @@ struct MenuCommands: Commands {
 					image: "play.fill",
 					shortcut: "A",
 					modifiers: .control,
-					disabled: op == nil,
+					disabled: op.actionsDisabled,
 					action: { op?.applyShader() }
 				)
 			}
@@ -131,21 +134,21 @@ struct MenuCommands: Commands {
 					name: "Previous layer",
 					image: "square.3.layers.3d.bottom.filled",
 					shortcut: "\u{19}",
-					disabled: op == nil,
+					disabled: op.actionsDisabled,
 					action: { op?.state.prevLayer() }
 				)
 				ActionButton(
 					name: "Next layer",
 					image: "square.3.layers.3d.top.filled",
 					shortcut: "\u{9}",
-					disabled: op == nil,
+					disabled: op.actionsDisabled,
 					action: { op?.state.nextLayer() }
 				)
 				ActionButton(
 					name: "Toggle layer",
 					image: "square.3.layers.3d",
 					shortcut: " ",
-					disabled: op == nil,
+					disabled: op.actionsDisabled,
 					action: { op?.state.toggleLayer() }
 				)
 			}
@@ -155,14 +158,14 @@ struct MenuCommands: Commands {
 				name: "Swap colors",
 				image: "rectangle.2.swap",
 				shortcut: "x",
-				disabled: op == nil,
+				disabled: op.actionsDisabled,
 				action: { op?.state.swapColors() }
 			)
 			ActionButton(
 				name: "Pick color",
 				image: "paintpalette",
 				shortcut: "§",
-				disabled: op == nil,
+				disabled: op.actionsDisabled,
 				action: { op?.state.colorDialogPresented = true }
 			)
 		}

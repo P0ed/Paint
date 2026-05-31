@@ -43,7 +43,7 @@ extension Operations {
 
 	func exportFile<ContentType: TypeProvider>(_ type: ContentType.Type) {
 		let document = Document<ContentType>(film: film)
-		state.exportedFilm = Document(converting: document).film
+		state.exportedFilm = Document(converting: document, mask: state.visibleLayers).film
 		state.exporting = true
 	}
 

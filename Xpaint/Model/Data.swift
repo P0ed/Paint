@@ -85,11 +85,11 @@ extension Px {
 		alpha = 0xFF
 	}
 
-	init(argb: UInt32) {
-		red = UInt8(argb >> 0 & 0xFF)
-		green = UInt8(argb >> 8 & 0xFF)
-		blue = UInt8(argb >> 16 & 0xFF)
-		alpha = UInt8(argb >> 24 & 0xFF)
+	init(rgba: UInt32) {
+		red = UInt8(rgba >> 0 & 0xFF)
+		green = UInt8(rgba >> 8 & 0xFF)
+		blue = UInt8(rgba >> 16 & 0xFF)
+		alpha = UInt8(rgba >> 24 & 0xFF)
 	}
 
 	var cg: CGColor {
@@ -127,7 +127,7 @@ extension Px {
 extension Px {
 	static var white: Self { 0xFFFFFF }
 	static var black: Self { 0x000000 }
-	static var clear: Self { .init(argb: 0x0) }
+	static var clear: Self { Px(rgba: 0x0) }
 }
 
 struct Palette: Hashable, Codable {

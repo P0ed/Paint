@@ -100,3 +100,10 @@ extension Tool {
 		}
 	}
 }
+
+extension EditorState {
+
+	var dialogPresented: Bool {
+		colorDialogPresented || sizeDialogPresented || shaderDialogPresented
+	}
+}

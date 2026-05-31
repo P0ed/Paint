@@ -8,7 +8,9 @@ struct ColorDialog: View {
 
 	private var px: Px {
 		modifying(.clear, { px in
-			px = Px(rgb: UInt32(clamping: Int(hexRGB, radix: 16) ?? 0xFFFFFF))
+			let shex = Int(hexRGB, radix: 16) ?? 0xFFFFFF
+			let hex = (shex & 0xFF << 8) | (shex & 0xFF) << 16 | (shex & 0xFF << 16) >> 16
+			px = Px(rgb: UInt32(clamping: hex))
 			px.alpha = UInt8(clamping: Int(hexA, radix: 16) ?? 0xFF)
 		})
 	}

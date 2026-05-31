@@ -7,7 +7,7 @@ struct ShaderDialog: View {
 	var body: some View {
 		Dialog(
 			action: "Set",
-			confirm: { shader.function = text }
+			confirm: { shader.function = text.isEmpty ? Shader.default.function : text }
 		) {
 			TextEditor(text: $text).onAppear {
 				text = shader.function

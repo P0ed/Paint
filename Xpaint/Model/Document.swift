@@ -21,7 +21,7 @@ struct Document<ContentType: TypeProvider>: FileDocument {
 		film = Film(width: width, height: height, frames: Self.frames, color: color)
 	}
 
-	init<T: TypeProvider>(converting file: Document<T>) where T.ExportType == ContentType {
+	init<T: TypeProvider>(converting file: Document<T>, mask: Int = 0xF) where T.ExportType == ContentType {
 		film = Film(
 			size: FilmSize(
 				width: file.size.width,
@@ -29,7 +29,7 @@ struct Document<ContentType: TypeProvider>: FileDocument {
 				frames: Self.frames
 			)
 		)
-		film.merge(file.film)
+		film.merge(file.film, mask: mask)
 	}
 
 	init(configuration: ReadConfiguration) throws {
