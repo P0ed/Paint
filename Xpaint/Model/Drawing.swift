@@ -18,7 +18,7 @@ extension EditorView {
 				switch state.tool {
 				case .selection:
 					state.beginSelection(at: pxl(at: gesture.startLocation), mode: selectionMode)
-					state.updateSelection(to: point)
+					state.updateSelection(to: point, size: film.size)
 				case .line:
 					state.beginLineGesture(at: pxl(at: gesture.startLocation))
 					state.updateLine(to: point, snapped: modifierFlags.contains(.shift))
@@ -29,8 +29,8 @@ extension EditorView {
 			.onEnded { gesture in
 				switch state.tool {
 				case .selection:
-					state.updateSelection(to: pxl(at: gesture.location))
-					state.endSelection(size: film.size)
+					state.updateSelection(to: pxl(at: gesture.location), size: film.size)
+					state.endSelection()
 				case .line:
 					state.updateLine(
 						to: pxl(at: gesture.location),
@@ -87,7 +87,7 @@ private extension EditorView {
 	}
 
 	func pencil(_ px: Px? = .none, at pxl: PxL) {
-		let px = px ?? (pxl.isEven ? state.ditherColor : state.primaryColor)
+		let px = px ?? (pxl.isEven ? state.primaryColor : state.ditherColor)
 		film.drawPixel(px, at: pxl, selection: state.selection)
 	}
 

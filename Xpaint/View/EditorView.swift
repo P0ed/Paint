@@ -115,7 +115,7 @@ struct EditorView<ContentType: TypeProvider>: View {
 	}
 
 	private func renderSelection(in context: GraphicsContext) {
-		guard let selection = state.selectionPreview(size: film.size), !selection.isEmpty else { return }
+		guard let selection = state.selectionPreview, !selection.isEmpty else { return }
 		let scale = state.magnification
 		var boundary = Path()
 

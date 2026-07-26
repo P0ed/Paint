@@ -11,9 +11,13 @@ extension EditorView {
 			let modifiers = keys.modifiers
 			let chars = keys.characters
 
-			// Select All / Deselect live in `MenuCommands`; the main menu claims them first.
+			// Escape drops the gesture in flight; the committed selection survives it.
+			// Deselect lives in `MenuCommands`; the main menu claims it first.
 			if keys.key == .escape {
-				state.resetTransientInteractions()
+				guard state.selectionSession != nil || state.lineSession != nil else {
+					return .ignored
+				}
+				state.cancelSessions()
 				return .handled
 			}
 

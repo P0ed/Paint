@@ -120,38 +120,64 @@ final class InteractionStateTests: XCTestCase {
 	func testModifierPrecedenceAndClickRules() {
 		XCTAssertEqual(SelectionMode(shift: true, option: true), .subtract)
 		var state = EditorState()
-		state.selectAll(count: size.count)
+		state.selection = BitSet(count: size.count, filled: true)
 		let original = state.selection
 
 		state.beginSelection(at: PxL(x: 1, y: 1, z: 0), mode: .union)
-		state.endSelection(size: size)
+		state.endSelection()
 		XCTAssertEqual(state.selection, original)
 
 		state.beginSelection(at: PxL(x: 1, y: 1, z: 0), mode: .subtract)
-		state.endSelection(size: size)
+		state.endSelection()
 		XCTAssertEqual(state.selection, original)
 
 		state.beginSelection(at: PxL(x: 1, y: 1, z: 0), mode: .replace)
-		state.endSelection(size: size)
+		state.endSelection()
 		XCTAssertNil(state.selection)
 	}
 
 	func testSelectionUnionAndSubtractionUseStartingMask() {
 		var state = EditorState()
 		state.beginSelection(at: PxL(x: 0, y: 0, z: 0), mode: .replace)
-		state.updateSelection(to: PxL(x: 1, y: 1, z: 0))
-		state.endSelection(size: size)
+		state.updateSelection(to: PxL(x: 1, y: 1, z: 0), size: size)
+		state.endSelection()
 		XCTAssertEqual(Array(state.selection!), [8, 9, 12, 13])
 
 		state.beginSelection(at: PxL(x: 2, y: 0, z: 0), mode: .union)
-		state.updateSelection(to: PxL(x: 2, y: 1, z: 0))
-		XCTAssertEqual(Array(state.selectionPreview(size: size)!), [8, 9, 10, 12, 13, 14])
-		state.endSelection(size: size)
+		state.updateSelection(to: PxL(x: 2, y: 1, z: 0), size: size)
+		XCTAssertEqual(Array(state.selectionPreview!), [8, 9, 10, 12, 13, 14])
+		state.endSelection()
 
 		state.beginSelection(at: PxL(x: 1, y: 0, z: 0), mode: .subtract)
-		state.updateSelection(to: PxL(x: 2, y: 0, z: 0))
-		state.endSelection(size: size)
+		state.updateSelection(to: PxL(x: 2, y: 0, z: 0), size: size)
+		state.endSelection()
 		XCTAssertEqual(Array(state.selection!), [8, 9, 10, 12])
+	}
+
+	func testSubtractingWithoutASelectionExcludesTheRectangleFromTheWholeLayer() {
+		var state = EditorState()
+		state.beginSelection(at: PxL(x: 0, y: 0, z: 0), mode: .subtract)
+		state.updateSelection(to: PxL(x: 1, y: 1, z: 0), size: size)
+		state.endSelection()
+		XCTAssertEqual(
+			Array(state.selection!),
+			Array(0..<size.count).filter { ![8, 9, 12, 13].contains($0) }
+		)
+	}
+
+	func testDragPreviewIsCachedUntilTheDragReachesAnotherPixel() {
+		var state = EditorState()
+		state.beginSelection(at: PxL(x: 0, y: 0, z: 0), mode: .replace)
+		XCTAssertNil(state.selectionPreview)
+
+		state.updateSelection(to: PxL(x: 1, y: 1, z: 0), size: size)
+		let preview = state.selectionSession?.preview
+		XCTAssertEqual(Array(preview!), [8, 9, 12, 13])
+
+		// A move within the same pixel must not rebuild the mask.
+		state.selection = BitSet(count: size.count)
+		state.updateSelection(to: PxL(x: 1, y: 1, z: 1), size: size)
+		XCTAssertEqual(state.selectionSession?.preview, preview)
 	}
 
 	func testDragAndClickClickLineTransitionsAndCancellation() {
@@ -186,9 +212,16 @@ final class InteractionStateTests: XCTestCase {
 
 		state.selection = BitSet(count: size.count, filled: true)
 		state.lineSession = LineSession(start: a, end: b, phase: .pending)
+		state.beginSelection(at: a, mode: .replace)
+
+		// What Escape does: the gestures go, the committed selection stays.
+		state.cancelSessions()
+		XCTAssertEqual(state.selection, BitSet(count: size.count, filled: true))
+		XCTAssertNil(state.lineSession)
+		XCTAssertNil(state.selectionSession)
+
 		state.resetTransientInteractions()
 		XCTAssertNil(state.selection)
-		XCTAssertNil(state.lineSession)
 	}
 }
 
@@ -267,6 +300,20 @@ final class SelectionClippingTests: XCTestCase {
 
 		harness.operations.wipeLayer()
 		XCTAssertEqual(harness.film.pxs, [red, .clear, blue])
+
+		harness.state.secondaryColor = green
+		harness.operations.fillLayer()
+		XCTAssertEqual(harness.film.pxs, [red, green, blue])
+	}
+
+	func testMoveWithoutASelectionTransformsTheLayerInPlace() {
+		let harness = Harness(film: Film(width: 3, height: 1, frames: 2, color: .clear))
+		harness.film.pxs = [red, green, blue, red, green, blue]
+		harness.state.layer = 1
+
+		harness.operations.move(dx: 1)
+		XCTAssertEqual(Array(harness.film.pxs.prefix(3)), [red, green, blue])
+		XCTAssertEqual(Array(harness.film.pxs.suffix(3)), [.clear, red, green])
 	}
 
 	func testColorOperationsAndShaderAreClipped() {

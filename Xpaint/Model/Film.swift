@@ -56,15 +56,6 @@ extension Film {
 		}
 	}
 
-	/// Overwrites `layer` with `source`, leaving pixels the selection excludes untouched.
-	mutating func mergeLayer(_ layer: Int, from source: ArraySlice<Px>, selection: BitSet?) {
-		withMutableLayer(layer) { [offset = source.startIndex] destination in
-			for index in destination.indices where selection.allows(index) {
-				destination[index] = source[offset + index]
-			}
-		}
-	}
-
 	mutating func resize(width: Int, height: Int) {
 		guard let film = image() else { return }
 

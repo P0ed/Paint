@@ -70,18 +70,6 @@ struct MenuCommands: Commands {
 		}
 		CommandMenu("Selection") {
 			ActionButton(
-				name: "Select All",
-				image: "rectangle.dashed",
-				shortcut: "A",
-				modifiers: .command,
-				disabled: op.actionsDisabled,
-				action: {
-					if let count = op?.film.size.count {
-						op?.state.selectAll(count: count)
-					}
-				}
-			)
-			ActionButton(
 				name: "Deselect",
 				image: "rectangle.dashed",
 				shortcut: "A",
@@ -102,10 +90,17 @@ struct MenuCommands: Commands {
 			ActionButton(
 				name: "Wipe",
 				image: "windshield.rear.and.wiper",
-				shortcut: "W",
-				modifiers: .control,
+				shortcut: KeyEquivalent.delete.character,
 				disabled: op.actionsDisabled,
 				action: { op?.wipeLayer() }
+			)
+			ActionButton(
+				name: "Fill",
+				image: "paintbrush.fill",
+				shortcut: KeyEquivalent.delete.character,
+				modifiers: .option,
+				disabled: op.actionsDisabled,
+				action: { op?.fillLayer() }
 			)
 			Divider()
 			ActionButton(

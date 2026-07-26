@@ -51,6 +51,11 @@ extension Operations {
 		mutateSelectedPixels { px in px = .clear }
 	}
 
+	func fillLayer() {
+		let color = state.secondaryColor
+		mutateSelectedPixels { px in px = color }
+	}
+
 	func move(dx: Int = 0, dy: Int = 0) {
 		transformLayer { film, layer in film.move(layer: layer, dx: dx, dy: dy) }
 	}
@@ -100,11 +105,19 @@ private extension Operations {
 		}
 	}
 
-	/// Runs `transform` on a scratch copy, then merges the active layer back through the selection.
+	/// Runs `transform` in place, restoring the pixels the selection excludes from a one-layer backup.
 	func transformLayer(_ transform: (inout Film, Int) -> Void) {
 		let layer = state.layer
-		var scratch = film
-		transform(&scratch, layer)
-		film.mergeLayer(layer, from: scratch.pxs[scratch.range(layer)], selection: state.selection)
+		guard let selection = state.selection else {
+			// Nothing to clip against, so the transform needs no backup at all.
+			return transform(&film, layer)
+		}
+		let original = Array(film.pxs[film.range(layer)])
+		transform(&film, layer)
+		film.withMutableLayer(layer) { pixels in
+			for index in pixels.indices where !selection[index] {
+				pixels[index] = original[index]
+			}
+		}
 	}
 }

@@ -38,6 +38,8 @@ struct SelectionSession: Equatable {
 	var start: PxL
 	var end: PxL
 	var mode: SelectionMode
+	/// The mask this drag would commit, rebuilt only when the drag reaches another pixel.
+	var preview: BitSet?
 
 	var didDrag: Bool { start.xy != end.xy }
 }
@@ -55,11 +57,6 @@ struct LineSession: Equatable {
 }
 
 extension EditorState {
-
-	mutating func selectAll(count: Int) {
-		selection = BitSet(count: count, filled: true)
-		selectionSession = nil
-	}
 
 	/// Drops any in-progress gesture, keeping the committed selection.
 	mutating func cancelSessions() {
@@ -82,28 +79,36 @@ extension EditorState {
 		selectionSession = SelectionSession(start: point.xy, end: point.xy, mode: mode)
 	}
 
-	mutating func updateSelection(to point: PxL) {
-		selectionSession?.end = point.xy
+	mutating func updateSelection(to point: PxL, size: FilmSize) {
+		guard var session = selectionSession, session.end != point.xy else { return }
+		session.end = point.xy
+		session.preview = session.didDrag ? mask(for: session, size: size) : nil
+		selectionSession = session
 	}
 
-	func selectionPreview(size: FilmSize) -> BitSet? {
-		guard let session = selectionSession, session.didDrag else { return selection }
-		let rectangle = BitSet.rectangle(size: size, from: session.start, to: session.end)
-		return switch session.mode {
-		case .replace: rectangle
-		case .union: selection?.union(rectangle) ?? rectangle
-		case .subtract: selection?.subtracting(rectangle)
-		}
+	/// What the canvas draws: the drag in flight when there is one, otherwise the committed mask.
+	var selectionPreview: BitSet? {
+		selectionSession?.preview ?? selection
 	}
 
-	mutating func endSelection(size: FilmSize) {
+	mutating func endSelection() {
 		guard let session = selectionSession else { return }
 		if session.didDrag {
-			selection = selectionPreview(size: size)
+			selection = session.preview
 		} else if session.mode == .replace {
 			selection = nil
 		}
 		selectionSession = nil
+	}
+
+	private func mask(for session: SelectionSession, size: FilmSize) -> BitSet {
+		let rectangle = BitSet.rectangle(size: size, from: session.start, to: session.end)
+		return switch session.mode {
+		case .replace: rectangle
+		case .union: selection?.union(rectangle) ?? rectangle
+		// No selection means the whole layer, so subtracting leaves everything but the rectangle.
+		case .subtract: (selection ?? BitSet(count: size.count, filled: true)).subtracting(rectangle)
+		}
 	}
 
 	mutating func beginLineGesture(at point: PxL) {
