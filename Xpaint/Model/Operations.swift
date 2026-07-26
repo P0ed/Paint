@@ -56,11 +56,11 @@ extension Operations {
 		mutateSelectedPixels { px in px = color }
 	}
 
-	func move(dx: Int = 0, dy: Int = 0) {
+	func move(dx: Int = 0, dy: Int = 0, fill: Px = .clear) {
 		guard let selection = state.selection else {
-			return film.move(layer: state.layer, dx: dx, dy: dy)
+			return film.move(layer: state.layer, dx: dx, dy: dy, fill: fill)
 		}
-		film.move(layer: state.layer, dx: dx, dy: dy, selection: selection)
+		film.move(layer: state.layer, dx: dx, dy: dy, fill: fill, selection: selection)
 	}
 
 	func cut() {

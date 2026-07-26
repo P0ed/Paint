@@ -339,6 +339,23 @@ final class SelectionClippingTests: XCTestCase {
 		XCTAssertEqual(harness.film.pxs, [red, .clear, green])
 	}
 
+	func testMovingWithAFillTrailsThatColourBehindTheContent() {
+		let harness = Harness(film: Film(width: 3, height: 1, frames: 1, color: .clear))
+		harness.film.pxs = [red, green, blue]
+
+		harness.operations.move(dx: 1, fill: green)
+		XCTAssertEqual(harness.film.pxs, [green, red, green])
+
+		harness.film.pxs = [red, green, blue]
+		var pair = BitSet(count: 3)
+		pair[1] = true
+		pair[2] = true
+		harness.state.selection = pair
+
+		harness.operations.move(dx: 1, fill: red)
+		XCTAssertEqual(harness.film.pxs, [red, red, green])
+	}
+
 	func testMovingASelectionNeverWrapsAcrossRows() {
 		let harness = Harness(film: Film(width: 2, height: 2, frames: 1, color: .clear))
 		harness.film.pxs = [red, green, blue, red]

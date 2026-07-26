@@ -82,7 +82,8 @@ extension Film {
 
 extension Film {
 
-	mutating func move(layer: Int, dx: Int = 0, dy: Int = 0) {
+	/// Shifts the layer, painting `fill` into the cells the shift leaves behind.
+	mutating func move(layer: Int, dx: Int = 0, dy: Int = 0, fill: Px = .clear) {
 		withMutableLayer(layer) { [size] pxs in
 			let xs = dx > 0
 			? stride(from: size.width - 1, through: 0, by: -1)
@@ -104,16 +105,16 @@ extension Film {
 						pxs[dst] = pxs[src]
 					}
 					if x != col || y != row {
-						pxs[src] = .clear
+						pxs[src] = fill
 					}
 				}
 			}
 		}
 	}
 
-	/// Shifts only the pixels `selection` covers, clearing the cells the shift leaves empty.
+	/// Shifts only the pixels `selection` covers, painting `fill` into the cells it leaves empty.
 	/// Nothing outside the mask is read or written, so content pushed past its edge is lost.
-	mutating func move(layer: Int, dx: Int = 0, dy: Int = 0, selection: BitSet) {
+	mutating func move(layer: Int, dx: Int = 0, dy: Int = 0, fill: Px = .clear, selection: BitSet) {
 		let source = Array(pxs[range(layer)])
 		withMutableLayer(layer) { [size] pxs in
 			for index in selection {
@@ -124,7 +125,7 @@ extension Film {
 					&& (0..<size.height).contains(row)
 					&& selection[origin]
 				? source[origin]
-				: .clear
+				: fill
 			}
 		}
 	}

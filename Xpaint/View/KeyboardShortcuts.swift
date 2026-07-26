@@ -22,11 +22,13 @@ extension EditorView {
 			}
 
 			func arrowAction(dx: Int = 0, dy: Int = 0) {
-				guard !modifiers.contains(.option) else {
-					// Option slides the marching ants, leaving the pixels where they are.
+				guard !modifiers.contains(.command) else {
+					// Command slides the marching ants, leaving the pixels where they are.
 					return state.moveSelection(dx: dx, dy: dy, size: film.size)
 				}
-				dispatch { operations.move(dx: dx, dy: dy) }
+				// Option trails the secondary colour behind the move instead of clearing.
+				let fill: Px = modifiers.contains(.option) ? state.secondaryColor : .clear
+				dispatch { operations.move(dx: dx, dy: dy, fill: fill) }
 			}
 
 			func numAction(_ num: Int) {
