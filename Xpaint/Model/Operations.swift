@@ -52,15 +52,7 @@ extension Operations {
 	}
 
 	func move(dx: Int = 0, dy: Int = 0) {
-		var moved = film
-		moved.move(layer: state.layer, dx: dx, dy: dy)
-		let source = Array(moved.pxs[moved.range(state.layer)])
-		let selection = state.selection
-		film.withMutableLayer(state.layer) { destination in
-			for index in destination.indices where selection?[index] ?? true {
-				destination[index] = source[index]
-			}
-		}
+		transformLayer { film, layer in film.move(layer: layer, dx: dx, dy: dy) }
 	}
 
 	func cut() {
@@ -84,7 +76,7 @@ extension Operations {
 			for y in 0 ..< min(size.height, gs.height) {
 				for x in 0 ..< min(size.width, gs.width) {
 					let index = y * size.width + x
-					if selection?[index] ?? true {
+					if selection.allows(index) {
 						dst[index] = dst[index] + src[y * gs.width + x]
 					}
 				}
@@ -93,26 +85,26 @@ extension Operations {
 	}
 
 	func applyShader() {
-		let layer = state.layer
-		let selection = state.selection
-		var result = film
-		shader(layer, &result)
-		let source = Array(result.pxs[result.range(layer)])
-		film.withMutableLayer(layer) { destination in
-			for index in destination.indices where selection?[index] ?? true {
-				destination[index] = source[index]
-			}
-		}
+		transformLayer { film, layer in shader(layer, &film) }
 	}
 }
 
 private extension Operations {
+
 	func mutateSelectedPixels(_ body: (inout Px) -> Void) {
 		let selection = state.selection
 		film.withMutableLayer(state.layer) { pixels in
-			for index in pixels.indices where selection?[index] ?? true {
+			for index in pixels.indices where selection.allows(index) {
 				body(&pixels[index])
 			}
 		}
+	}
+
+	/// Runs `transform` on a scratch copy, then merges the active layer back through the selection.
+	func transformLayer(_ transform: (inout Film, Int) -> Void) {
+		let layer = state.layer
+		var scratch = film
+		transform(&scratch, layer)
+		film.mergeLayer(layer, from: scratch.pxs[scratch.range(layer)], selection: state.selection)
 	}
 }

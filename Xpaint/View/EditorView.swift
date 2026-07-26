@@ -94,10 +94,10 @@ struct EditorView<ContentType: TypeProvider>: View {
 		let selection = state.selection
 		let scale = state.magnification
 		let primary = state.primaryColor
-		let secondary = state.dither ? state.secondaryColor : primary
+		let secondary = state.ditherColor
 
 		for point in rasterizedLine(from: session.start, to: session.end) {
-			guard let index = film.size.index(at: point.xy), selection?[index] ?? true else { continue }
+			guard let index = film.size.index(at: point.xy), selection.allows(index) else { continue }
 			let row = film.size.height - 1 - point.y
 			let rect = CGRect(
 				x: CGFloat(point.x) * scale,

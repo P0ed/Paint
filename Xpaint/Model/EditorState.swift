@@ -6,8 +6,7 @@ struct EditorState: Equatable {
 	var tool: Tool = .pencil {
 		didSet {
 			guard tool != oldValue else { return }
-			lineSession = nil
-			selectionSession = nil
+			cancelSessions()
 		}
 	}
 	var dither: Bool = false
@@ -38,7 +37,6 @@ enum SelectionMode: Equatable {
 struct SelectionSession: Equatable {
 	var start: PxL
 	var end: PxL
-	var initial: BitSet?
 	var mode: SelectionMode
 
 	var didDrag: Bool { start.xy != end.xy }
@@ -47,7 +45,8 @@ struct SelectionSession: Equatable {
 struct LineSession: Equatable {
 	enum Phase: Equatable {
 		case pending
-		case gesture(startedPending: Bool, didMove: Bool)
+		/// An in-flight drag. `committable` once it has travelled far enough to be worth drawing.
+		case gesture(committable: Bool)
 	}
 
 	var start: PxL
@@ -56,13 +55,16 @@ struct LineSession: Equatable {
 }
 
 extension EditorState {
-	func allows(_ index: Int) -> Bool {
-		selection?[index] ?? true
-	}
 
 	mutating func selectAll(count: Int) {
 		selection = BitSet(count: count, filled: true)
 		selectionSession = nil
+	}
+
+	/// Drops any in-progress gesture, keeping the committed selection.
+	mutating func cancelSessions() {
+		selectionSession = nil
+		lineSession = nil
 	}
 
 	mutating func clearSelection() {
@@ -72,18 +74,12 @@ extension EditorState {
 
 	mutating func resetTransientInteractions() {
 		selection = nil
-		selectionSession = nil
-		lineSession = nil
+		cancelSessions()
 	}
 
 	mutating func beginSelection(at point: PxL, mode: SelectionMode) {
 		guard selectionSession == nil else { return }
-		selectionSession = SelectionSession(
-			start: point.xy,
-			end: point.xy,
-			initial: selection,
-			mode: mode
-		)
+		selectionSession = SelectionSession(start: point.xy, end: point.xy, mode: mode)
 	}
 
 	mutating func updateSelection(to point: PxL) {
@@ -92,14 +88,11 @@ extension EditorState {
 
 	func selectionPreview(size: FilmSize) -> BitSet? {
 		guard let session = selectionSession, session.didDrag else { return selection }
-		let rectangle = rectangularMask(size: size, from: session.start, to: session.end)
-		switch session.mode {
-		case .replace:
-			return rectangle
-		case .union:
-			return (session.initial ?? BitSet(count: size.count)).union(rectangle)
-		case .subtract:
-			return session.initial?.subtracting(rectangle)
+		let rectangle = BitSet.rectangle(size: size, from: session.start, to: session.end)
+		return switch session.mode {
+		case .replace: rectangle
+		case .union: selection?.union(rectangle) ?? rectangle
+		case .subtract: selection?.subtracting(rectangle)
 		}
 	}
 
@@ -116,17 +109,10 @@ extension EditorState {
 	mutating func beginLineGesture(at point: PxL) {
 		let point = PxL(x: point.x, y: point.y, z: layer)
 		if let session = lineSession, session.phase == .pending {
-			lineSession = LineSession(
-				start: session.start,
-				end: point,
-				phase: .gesture(startedPending: true, didMove: false)
-			)
+			// Second click of a click-click line: it commits however short the drag is.
+			lineSession = LineSession(start: session.start, end: point, phase: .gesture(committable: true))
 		} else if lineSession == nil {
-			lineSession = LineSession(
-				start: point,
-				end: point,
-				phase: .gesture(startedPending: false, didMove: false)
-			)
+			lineSession = LineSession(start: point, end: point, phase: .gesture(committable: false))
 		}
 	}
 
@@ -134,11 +120,8 @@ extension EditorState {
 		guard var session = lineSession else { return }
 		let point = PxL(x: point.x, y: point.y, z: session.start.z)
 		session.end = snapped ? snappedEndpoint(from: session.start, to: point) : point
-		if case let .gesture(startedPending, didMove) = session.phase {
-			session.phase = .gesture(
-				startedPending: startedPending,
-				didMove: didMove || point.xy != session.start.xy
-			)
+		if case let .gesture(committable) = session.phase {
+			session.phase = .gesture(committable: committable || point.xy != session.start.xy)
 		}
 		lineSession = session
 	}
@@ -149,20 +132,16 @@ extension EditorState {
 	}
 
 	mutating func endLineGesture() -> (PxL, PxL)? {
-		guard let session = lineSession,
-			case let .gesture(startedPending, didMove) = session.phase
-		else { return nil }
-
-		if startedPending || didMove {
-			lineSession = nil
-			return (session.start, session.end)
+		guard let session = lineSession, case let .gesture(committable) = session.phase else {
+			return nil
 		}
-		lineSession = LineSession(start: session.start, end: session.end, phase: .pending)
-		return nil
-	}
-
-	mutating func cancelLine() {
+		guard committable else {
+			// A click that went nowhere: arm the first point and wait for the second click.
+			lineSession = LineSession(start: session.start, end: session.end, phase: .pending)
+			return nil
+		}
 		lineSession = nil
+		return (session.start, session.end)
 	}
 
 	mutating func setScale(_ scale: CGFloat) {
@@ -192,6 +171,9 @@ extension EditorState {
 	}
 
 	var colors: [Px] { [primaryColor, secondaryColor] }
+
+	/// The colour every tool alternates with while dithering; `primaryColor` when dithering is off.
+	var ditherColor: Px { dither ? secondaryColor : primaryColor }
 
 	mutating func toggleLayer() {
 		let isVisible = (visibleLayers & (1 << layer)) != 0

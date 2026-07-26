@@ -17,17 +17,15 @@ final class BitSetAndGeometryTests: XCTestCase {
 		XCTAssertEqual(Array(lhs.union(rhs)), [1, 2, 8])
 		XCTAssertEqual(Array(lhs.subtracting(rhs)), [1])
 
-		var filled = BitSet(count: 10)
-		filled.fill()
+		let filled = BitSet(count: 10, filled: true)
 		XCTAssertEqual(Array(filled), Array(0..<10))
-		filled.fill(false)
-		XCTAssertTrue(filled.isEmpty)
-		XCTAssertEqual(filled, BitSet(count: 10))
+		XCTAssertTrue(BitSet(count: 10).isEmpty)
+		XCTAssertEqual(filled.subtracting(filled), BitSet(count: 10))
 	}
 
 	func testRectangleIsInclusiveAndClampedWithoutSelectingOutsideIntersection() {
 		let size = FilmSize(width: 4, height: 3, frames: 1)
-		let mask = rectangularMask(
+		let mask = BitSet.rectangle(
 			size: size,
 			from: PxL(x: -2, y: 1, z: 0),
 			to: PxL(x: 2, y: 9, z: 0)
@@ -37,7 +35,7 @@ final class BitSetAndGeometryTests: XCTestCase {
 			(0...2).map { x in PxL(x: x, y: y, z: 0) }
 		})
 		XCTAssertEqual(points, expected)
-		XCTAssertTrue(rectangularMask(
+		XCTAssertTrue(BitSet.rectangle(
 			size: size,
 			from: PxL(x: -3, y: 0, z: 0),
 			to: PxL(x: -1, y: 2, z: 0)
@@ -114,9 +112,9 @@ final class InteractionStateTests: XCTestCase {
 
 	func testAbsentAndEmptySelectionsDiffer() {
 		var state = EditorState()
-		XCTAssertTrue(state.allows(0))
+		XCTAssertTrue(state.selection.allows(0))
 		state.selection = BitSet(count: size.count)
-		XCTAssertFalse(state.allows(0))
+		XCTAssertFalse(state.selection.allows(0))
 	}
 
 	func testModifierPrecedenceAndClickRules() {

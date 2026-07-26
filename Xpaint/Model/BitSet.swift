@@ -1,7 +1,5 @@
-import Foundation
-
 struct BitSet: Equatable, Sequence {
-	private static let width = UInt8.bitWidth
+	fileprivate static let width = UInt8.bitWidth
 
 	private(set) var storage: [UInt8]
 	private(set) var count: Int
@@ -31,11 +29,6 @@ struct BitSet: Equatable, Sequence {
 				storage[index / Self.width] &= ~(1 << (index % Self.width))
 			}
 		}
-	}
-
-	mutating func fill(_ value: Bool = true) {
-		storage = .init(repeating: value ? .max : 0, count: storage.count)
-		clearUnusedBits()
 	}
 
 	mutating func formUnion(_ other: BitSet) {
@@ -74,6 +67,11 @@ struct BitSet: Equatable, Sequence {
 
 		mutating func next() -> Int? {
 			while index < bits.count {
+				let word = index / BitSet.width
+				guard bits.storage[word] != 0 else {
+					index = (word + 1) * BitSet.width
+					continue
+				}
 				defer { index += 1 }
 				if bits[index] { return index }
 			}
@@ -89,90 +87,32 @@ struct BitSet: Equatable, Sequence {
 	}
 }
 
-func rectangularMask(size: FilmSize, from start: PxL, to end: PxL) -> BitSet {
-	var result = BitSet(count: size.count)
-	let minX = max(0, min(start.x, end.x))
-	let maxX = min(size.width - 1, max(start.x, end.x))
-	let minY = max(0, min(start.y, end.y))
-	let maxY = min(size.height - 1, max(start.y, end.y))
+extension BitSet {
 
-	guard minX <= maxX, minY <= maxY else { return result }
-	for y in minY...maxY {
-		for x in minX...maxX {
-			if let index = size.index(at: PxL(x: x, y: y, z: 0)) {
-				result[index] = true
-			}
-		}
-	}
-	return result
-}
+	/// Bits set for every pixel inside the rectangle spanned by `start` and `end`, clipped to `size`.
+	static func rectangle(size: FilmSize, from start: PxL, to end: PxL) -> BitSet {
+		var result = BitSet(count: size.count)
+		let minX = Swift.max(0, Swift.min(start.x, end.x))
+		let maxX = Swift.min(size.width - 1, Swift.max(start.x, end.x))
+		let minY = Swift.max(0, Swift.min(start.y, end.y))
+		let maxY = Swift.min(size.height - 1, Swift.max(start.y, end.y))
 
-func rasterizedLine(from start: PxL, to end: PxL) -> [PxL] {
-	var result: [PxL] = []
-	var x = start.x
-	var y = start.y
-	let dx = abs(end.x - start.x)
-	let sx = start.x < end.x ? 1 : -1
-	let dy = -abs(end.y - start.y)
-	let sy = start.y < end.y ? 1 : -1
-	var error = dx + dy
-
-	while true {
-		result.append(PxL(x: x, y: y, z: start.z))
-		if x == end.x, y == end.y { break }
-		let doubled = 2 * error
-		if doubled >= dy {
-			error += dy
-			x += sx
-		}
-		if doubled <= dx {
-			error += dx
-			y += sy
-		}
-	}
-	return result
-}
-
-func snappedEndpoint(from start: PxL, to end: PxL) -> PxL {
-	let dx = end.x - start.x
-	let dy = end.y - start.y
-	guard dx != 0 || dy != 0 else { return end }
-
-	let bases = [(1, 0), (2, 1), (1, 1), (1, 2), (0, 1)]
-	var best = (x: 1, y: 0)
-	var bestScore = -Double.infinity
-
-	for base in bases {
-		let xs = base.0 == 0 ? [0] : [-base.0, base.0]
-		let ys = base.1 == 0 ? [0] : [-base.1, base.1]
-		for x in xs {
-			for y in ys {
-				let dot = Double(dx * x + dy * y)
-				guard dot > 0 else { continue }
-				let deltaLength = Double(dx * dx + dy * dy)
-				let directionLength = Double(x * x + y * y)
-				let score = dot / Foundation.sqrt(deltaLength * directionLength)
-				if score > bestScore {
-					bestScore = score
-					best = (x, y)
+		guard minX <= maxX, minY <= maxY else { return result }
+		for y in minY...maxY {
+			for x in minX...maxX {
+				if let index = size.index(at: PxL(x: x, y: y, z: 0)) {
+					result[index] = true
 				}
 			}
 		}
+		return result
 	}
+}
 
-	let lengthSquared = best.x * best.x + best.y * best.y
-	let multiple = max(1, Int((Double(dx * best.x + dy * best.y) / Double(lengthSquared)).rounded()))
-	var snappedX = best.x * multiple
-	var snappedY = best.y * multiple
-	if abs(best.x) == 2 {
-		snappedX += best.x.signum()
+extension Optional where Wrapped == BitSet {
+
+	/// Selection semantics: the absence of a selection means the whole layer is writable.
+	func allows(_ index: Int) -> Bool {
+		self?[index] ?? true
 	}
-	if abs(best.y) == 2 {
-		snappedY += best.y.signum()
-	}
-	return PxL(
-		x: start.x + snappedX,
-		y: start.y + snappedY,
-		z: start.z
-	)
 }

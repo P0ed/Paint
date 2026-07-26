@@ -42,7 +42,7 @@ extension EditorView {
 				case .eyedropper:
 					break
 				default:
-					nameUndoAction(state.tool.actionName)
+					undoGroup(state.tool.actionName)
 				}
 			}
 	}
@@ -68,8 +68,9 @@ private extension EditorView {
 		)
 	}
 
-	func nameUndoAction(_ name: String) {
+	func undoGroup(_ name: String, _ body: () -> Void = {}) {
 		undoManager?.beginUndoGrouping()
+		body()
 		undoManager?.setActionName(name)
 		undoManager?.endUndoGrouping()
 	}
@@ -86,19 +87,15 @@ private extension EditorView {
 	}
 
 	func pencil(_ px: Px? = .none, at pxl: PxL) {
-		let px = px ?? color(at: pxl)
+		let px = px ?? (pxl.isEven ? state.ditherColor : state.primaryColor)
 		film.drawPixel(px, at: pxl, selection: state.selection)
-	}
-
-	func color(at pxl: PxL) -> Px {
-		state.dither && pxl.isEven ? state.secondaryColor : state.primaryColor
 	}
 
 	func bucket(at pxl: PxL) {
 		film.floodFill(
 			at: pxl,
 			primary: state.primaryColor,
-			secondary: state.dither ? state.secondaryColor : state.primaryColor,
+			secondary: state.ditherColor,
 			selection: state.selection
 		)
 	}
@@ -107,31 +104,28 @@ private extension EditorView {
 		film.replaceColor(
 			at: pxl,
 			primary: state.primaryColor,
-			secondary: state.dither ? state.secondaryColor : state.primaryColor,
+			secondary: state.ditherColor,
 			selection: state.selection
 		)
 	}
 
 	func commitLine(from start: PxL, to end: PxL) {
-		undoManager?.beginUndoGrouping()
-		film.drawLine(
-			from: start,
-			to: end,
-			primary: state.primaryColor,
-			secondary: state.dither ? state.secondaryColor : state.primaryColor,
-			selection: state.selection
-		)
-		undoManager?.setActionName(Tool.line.actionName)
-		undoManager?.endUndoGrouping()
+		undoGroup(Tool.line.actionName) {
+			film.drawLine(
+				from: start,
+				to: end,
+				primary: state.primaryColor,
+				secondary: state.ditherColor,
+				selection: state.selection
+			)
+		}
 	}
 }
 
 extension Film {
 	mutating func drawPixel(_ pixel: Px, at point: PxL, selection: BitSet?) {
-		guard let index = size.index(at: point) else { return }
-		let localIndex = index % size.count
-		guard selection?[localIndex] ?? true else { return }
-		pxs[index] = pixel
+		guard let index = size.index(at: point.xy), selection.allows(index) else { return }
+		withMutableLayer(point.z) { pixels in pixels[index] = pixel }
 	}
 
 	mutating func floodFill(
@@ -142,7 +136,7 @@ extension Film {
 	) {
 		let size = size
 		let start = point.xy
-		guard let startIndex = size.index(at: start), selection?[startIndex] ?? true else { return }
+		guard let startIndex = size.index(at: start), selection.allows(startIndex) else { return }
 
 		withMutableLayer(point.z) { pixels in
 			let original = pixels[startIndex]
@@ -151,19 +145,22 @@ extension Film {
 			var visited = BitSet(count: size.count)
 			visited[startIndex] = true
 			var front = [start]
+			var next: [PxL] = []
 			while !front.isEmpty {
-				front = front.flatMap { current in
-					current.neighbors.compactMap { neighbor in
-						size.index(at: neighbor).flatMap { index in
-							guard !visited[index], selection?[index] ?? true, pixels[index] == original else {
-								return nil
-							}
-							pixels[index] = neighbor.isEven ? primary : secondary
-							visited[index] = true
-							return neighbor
-						}
+				next.removeAll(keepingCapacity: true)
+				for current in front {
+					for neighbor in current.neighbors {
+						guard let index = size.index(at: neighbor),
+							!visited[index],
+							selection.allows(index),
+							pixels[index] == original
+						else { continue }
+						pixels[index] = neighbor.isEven ? primary : secondary
+						visited[index] = true
+						next.append(neighbor)
 					}
 				}
+				swap(&front, &next)
 			}
 		}
 	}
@@ -177,7 +174,7 @@ extension Film {
 		guard let absoluteIndex = size.index(at: point) else { return }
 		let original = pxs[absoluteIndex]
 		withMutableLayer(point.z) { [size] pixels in
-			for index in pixels.indices where (selection?[index] ?? true) && pixels[index] == original {
+			for index in pixels.indices where selection.allows(index) && pixels[index] == original {
 				pixels[index] = size.pxl(at: index).isEven ? primary : secondary
 			}
 		}
@@ -193,7 +190,7 @@ extension Film {
 		let size = size
 		withMutableLayer(start.z) { pixels in
 			for point in rasterizedLine(from: start, to: end) {
-				guard let index = size.index(at: point.xy), selection?[index] ?? true else { continue }
+				guard let index = size.index(at: point.xy), selection.allows(index) else { continue }
 				pixels[index] = point.isEven ? primary : secondary
 			}
 		}

@@ -11,13 +11,9 @@ extension EditorView {
 			let modifiers = keys.modifiers
 			let chars = keys.characters
 
+			// Select All / Deselect live in `MenuCommands`; the main menu claims them first.
 			if keys.key == .escape {
-				state.cancelLine()
-				state.clearSelection()
-				return .handled
-			}
-			if modifiers.contains(.command), !modifiers.contains(.shift), chars.lowercased() == "a" {
-				state.selectAll(count: film.size.count)
+				state.resetTransientInteractions()
 				return .handled
 			}
 
