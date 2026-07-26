@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A10000000000000000000001 /* SelectionAndLineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* SelectionAndLineTests.swift */; };
 		5F1B9FC22EEB2DDA000B1BFC /* Film.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F1B9FC12EEB2DDA000B1BFC /* Film.swift */; };
 		5F1B9FC42EEB54C7000B1BFC /* MenuCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F1B9FC32EEB54C3000B1BFC /* MenuCommands.swift */; };
 		5F28FCAF2EABDC8100C0A181 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5F28FCA42EABDC8100C0A181 /* Assets.xcassets */; };
@@ -34,7 +35,19 @@
 		5FD061112ED6433000B82152 /* EditorState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FD061102ED6433000B82152 /* EditorState.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		A10000000000000000000003 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5FF2A3A82E8F136C00EA7883 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5FF2A3AF2E8F136C00EA7883;
+			remoteInfo = Xpaint;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		A10000000000000000000002 /* SelectionAndLineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionAndLineTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000004 /* XpaintTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = XpaintTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5F1B9FC12EEB2DDA000B1BFC /* Film.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Film.swift; sourceTree = "<group>"; };
 		5F1B9FC32EEB54C3000B1BFC /* MenuCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuCommands.swift; sourceTree = "<group>"; };
 		5F28FC9E2EABDC8100C0A181 /* CoreGraphics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreGraphics.swift; sourceTree = "<group>"; };
@@ -65,6 +78,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		A10000000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5FF2A3AD2E8F136C00EA7883 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -75,6 +95,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		A10000000000000000000006 /* XpaintTests */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000002 /* SelectionAndLineTests.swift */,
+			);
+			path = XpaintTests;
+			sourceTree = "<group>";
+		};
 		5F28FCA22EABDC8100C0A181 /* Utility */ = {
 			isa = PBXGroup;
 			children = (
@@ -136,6 +164,7 @@
 			isa = PBXGroup;
 			children = (
 				5F28FCAE2EABDC8100C0A181 /* Xpaint */,
+				A10000000000000000000006 /* XpaintTests */,
 				5FF2A3B12E8F136C00EA7883 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -144,6 +173,7 @@
 			isa = PBXGroup;
 			children = (
 				5FF2A3B02E8F136C00EA7883 /* Xpaint.app */,
+				A10000000000000000000004 /* XpaintTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -151,6 +181,25 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		A10000000000000000000007 /* XpaintTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000008 /* Build configuration list for PBXNativeTarget "XpaintTests" */;
+			buildPhases = (
+				A10000000000000000000009 /* Sources */,
+				A10000000000000000000005 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1000000000000000000000A /* PBXTargetDependency */,
+			);
+			name = XpaintTests;
+			packageProductDependencies = (
+			);
+			productName = XpaintTests;
+			productReference = A10000000000000000000004 /* XpaintTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		5FF2A3AF2E8F136C00EA7883 /* Xpaint */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5FF2A3C42E8F137000EA7883 /* Build configuration list for PBXNativeTarget "Xpaint" */;
@@ -180,6 +229,10 @@
 				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
+					A10000000000000000000007 = {
+						CreatedOnToolsVersion = 26.0.1;
+						TestTargetID = 5FF2A3AF2E8F136C00EA7883;
+					};
 					5FF2A3AF2E8F136C00EA7883 = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
@@ -200,6 +253,7 @@
 			projectRoot = "";
 			targets = (
 				5FF2A3AF2E8F136C00EA7883 /* Xpaint */,
+				A10000000000000000000007 /* XpaintTests */,
 			);
 		};
 /* End PBXProject section */
@@ -216,6 +270,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		A10000000000000000000009 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000001 /* SelectionAndLineTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5FF2A3AC2E8F136C00EA7883 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -249,7 +311,47 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		A1000000000000000000000A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5FF2A3AF2E8F136C00EA7883 /* Xpaint */;
+			targetProxy = A10000000000000000000003 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		A1000000000000000000000B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = p0.XpaintTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Xpaint.app/Contents/MacOS/Xpaint";
+			};
+			name = Debug;
+		};
+		A1000000000000000000000C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = p0.XpaintTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Xpaint.app/Contents/MacOS/Xpaint";
+			};
+			name = Release;
+		};
 		5FF2A3C22E8F137000EA7883 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -463,6 +565,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		A10000000000000000000008 /* Build configuration list for PBXNativeTarget "XpaintTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1000000000000000000000B /* Debug */,
+				A1000000000000000000000C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		5FF2A3AB2E8F136C00EA7883 /* Build configuration list for PBXProject "Xpaint" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

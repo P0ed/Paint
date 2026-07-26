@@ -15,7 +15,7 @@ extension Operations {
 	}
 
 	func shiftLeft() {
-		film.withMutablePixel(state.layer) { px in
+		mutateSelectedPixels { px in
 			px.red <<= 1
 			px.green <<= 1
 			px.blue <<= 1
@@ -23,7 +23,7 @@ extension Operations {
 	}
 
 	func shiftRight() {
-		film.withMutablePixel(state.layer) { px in
+		mutateSelectedPixels { px in
 			px.red >>= 1
 			px.green >>= 1
 			px.blue >>= 1
@@ -31,7 +31,7 @@ extension Operations {
 	}
 
 	func makeMonochrome() {
-		film.withMutablePixel(state.layer) { px in
+		mutateSelectedPixels { px in
 			let avg = UInt8(
 				clamping: (UInt16(px.red) + UInt16(px.green) + UInt16(px.blue)) / 3
 			)
@@ -48,21 +48,29 @@ extension Operations {
 	}
 
 	func wipeLayer() {
-		film.withMutablePixel(state.layer) { px in px = .clear }
+		mutateSelectedPixels { px in px = .clear }
 	}
 
 	func move(dx: Int = 0, dy: Int = 0) {
-		film.move(layer: state.layer, dx: dx, dy: dy)
+		var moved = film
+		moved.move(layer: state.layer, dx: dx, dy: dy)
+		let source = Array(moved.pxs[moved.range(state.layer)])
+		let selection = state.selection
+		film.withMutableLayer(state.layer) { destination in
+			for index in destination.indices where selection?[index] ?? true {
+				destination[index] = source[index]
+			}
+		}
 	}
 
 	func cut() {
 		copy()
-		film.withMutablePixel(state.layer) { px in px = .clear }
+		mutateSelectedPixels { px in px = .clear }
 	}
 
 	func copy() {
 		let layer = film.pxs[film.range(state.layer)]
-		global.pxs.replaceSubrange(0 ..< layer.count - 1, with: layer)
+		global.pxs.replaceSubrange(0..<layer.count, with: layer)
 		global.size = film.size
 	}
 
@@ -70,17 +78,41 @@ extension Operations {
 		film.withMutableLayer(state.layer) { [
 			size = film.size,
 			gs = global.size,
-			src = global.pxs
+			src = global.pxs,
+			selection = state.selection
 		] dst in
 			for y in 0 ..< min(size.height, gs.height) {
 				for x in 0 ..< min(size.width, gs.width) {
-					dst[y * size.width + x] = dst[y * size.width + x] + src[y * gs.width + x]
+					let index = y * size.width + x
+					if selection?[index] ?? true {
+						dst[index] = dst[index] + src[y * gs.width + x]
+					}
 				}
 			}
 		}
 	}
 
 	func applyShader() {
-		shader(state.layer, &film)
+		let layer = state.layer
+		let selection = state.selection
+		var result = film
+		shader(layer, &result)
+		let source = Array(result.pxs[result.range(layer)])
+		film.withMutableLayer(layer) { destination in
+			for index in destination.indices where selection?[index] ?? true {
+				destination[index] = source[index]
+			}
+		}
+	}
+}
+
+private extension Operations {
+	func mutateSelectedPixels(_ body: (inout Px) -> Void) {
+		let selection = state.selection
+		film.withMutableLayer(state.layer) { pixels in
+			for index in pixels.indices where selection?[index] ?? true {
+				body(&pixels[index])
+			}
+		}
 	}
 }

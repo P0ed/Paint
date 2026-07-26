@@ -11,6 +11,16 @@ extension EditorView {
 			let modifiers = keys.modifiers
 			let chars = keys.characters
 
+			if keys.key == .escape {
+				state.cancelLine()
+				state.clearSelection()
+				return .handled
+			}
+			if modifiers.contains(.command), !modifiers.contains(.shift), chars.lowercased() == "a" {
+				state.selectAll(count: film.size.count)
+				return .handled
+			}
+
 			func numAction(_ num: Int) {
 				let idx = num + (modifiers.contains(.shift) ? 8 : 0)
 				if modifiers.contains(.command) {

@@ -68,6 +68,28 @@ struct MenuCommands: Commands {
 			)
 			Divider()
 		}
+		CommandMenu("Selection") {
+			ActionButton(
+				name: "Select All",
+				image: "rectangle.dashed",
+				shortcut: "A",
+				modifiers: .command,
+				disabled: op.actionsDisabled,
+				action: {
+					if let count = op?.film.size.count {
+						op?.state.selectAll(count: count)
+					}
+				}
+			)
+			ActionButton(
+				name: "Deselect",
+				image: "rectangle.dashed",
+				shortcut: "A",
+				modifiers: [.command, .shift],
+				disabled: op.actionsDisabled,
+				action: { op?.state.clearSelection() }
+			)
+		}
 		CommandMenu("Operations") {
 			ActionButton(
 				name: "Resize",

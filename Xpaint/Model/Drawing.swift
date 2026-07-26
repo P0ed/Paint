@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 extension EditorView {
@@ -13,18 +14,65 @@ extension EditorView {
 	var drawingController: some Gesture {
 		DragGesture(minimumDistance: 0)
 			.onChanged { gesture in
-				draw(at: pxl(at: gesture.location))
+				let point = pxl(at: gesture.location)
+				switch state.tool {
+				case .selection:
+					state.beginSelection(at: pxl(at: gesture.startLocation), mode: selectionMode)
+					state.updateSelection(to: point)
+				case .line:
+					state.beginLineGesture(at: pxl(at: gesture.startLocation))
+					state.updateLine(to: point, snapped: modifierFlags.contains(.shift))
+				default:
+					draw(at: point)
+				}
 			}
-			.onEnded { _ in
-				guard state.tool != .eyedropper else { return }
-				undoManager?.beginUndoGrouping()
-				undoManager?.setActionName(state.tool.actionName)
-				undoManager?.endUndoGrouping()
+			.onEnded { gesture in
+				switch state.tool {
+				case .selection:
+					state.updateSelection(to: pxl(at: gesture.location))
+					state.endSelection(size: film.size)
+				case .line:
+					state.updateLine(
+						to: pxl(at: gesture.location),
+						snapped: modifierFlags.contains(.shift)
+					)
+					if let (start, end) = state.endLineGesture() {
+						commitLine(from: start, to: end)
+					}
+				case .eyedropper:
+					break
+				default:
+					nameUndoAction(state.tool.actionName)
+				}
 			}
+	}
+
+	func hoverLine(at location: CGPoint) {
+		guard state.tool == .line else { return }
+		state.hoverLine(
+			to: pxl(at: location),
+			snapped: modifierFlags.contains(.shift)
+		)
 	}
 }
 
 private extension EditorView {
+	var modifierFlags: NSEvent.ModifierFlags {
+		NSEvent.modifierFlags
+	}
+
+	var selectionMode: SelectionMode {
+		SelectionMode(
+			shift: modifierFlags.contains(.shift),
+			option: modifierFlags.contains(.option)
+		)
+	}
+
+	func nameUndoAction(_ name: String) {
+		undoManager?.beginUndoGrouping()
+		undoManager?.setActionName(name)
+		undoManager?.endUndoGrouping()
+	}
 
 	func draw(at pxl: PxL) {
 		switch state.tool {
@@ -33,43 +81,86 @@ private extension EditorView {
 		case .bucket: bucket(at: pxl)
 		case .replace: replace(at: pxl)
 		case .eyedropper: state.primaryColor = film[pxl]
+		case .selection, .line: break
 		}
 	}
 
-	private func pencil(_ px: Px? = .none, at pxl: PxL) {
-		let px = px ?? (state.dither && pxl.isEven ? state.secondaryColor : state.primaryColor)
-		if let idx = film.size.index(at: pxl) {
-			film.pxs[idx] = px
-		}
+	func pencil(_ px: Px? = .none, at pxl: PxL) {
+		let px = px ?? color(at: pxl)
+		film.drawPixel(px, at: pxl, selection: state.selection)
 	}
 
-	private func bucket(at pxl: PxL) {
-		let size = film.size
-		let xy = pxl.xy
-		let layer = pxl.z
+	func color(at pxl: PxL) -> Px {
+		state.dither && pxl.isEven ? state.secondaryColor : state.primaryColor
+	}
 
-		guard let idx = size.index(at: xy) else { return }
+	func bucket(at pxl: PxL) {
+		film.floodFill(
+			at: pxl,
+			primary: state.primaryColor,
+			secondary: state.dither ? state.secondaryColor : state.primaryColor,
+			selection: state.selection
+		)
+	}
 
-		film.withMutableLayer(layer) { pxs in
-			let c = pxs[idx]
-			let pc = state.primaryColor
-			let sc = state.dither ? state.secondaryColor : pc
-			pxs[idx] = xy.isEven ? pc : sc
+	func replace(at pxl: PxL) {
+		film.replaceColor(
+			at: pxl,
+			primary: state.primaryColor,
+			secondary: state.dither ? state.secondaryColor : state.primaryColor,
+			selection: state.selection
+		)
+	}
 
-			var stroke = BitSet(count: size.count)
-			stroke[idx] = true
-			var front = [xy] as [PxL]
+	func commitLine(from start: PxL, to end: PxL) {
+		undoManager?.beginUndoGrouping()
+		film.drawLine(
+			from: start,
+			to: end,
+			primary: state.primaryColor,
+			secondary: state.dither ? state.secondaryColor : state.primaryColor,
+			selection: state.selection
+		)
+		undoManager?.setActionName(Tool.line.actionName)
+		undoManager?.endUndoGrouping()
+	}
+}
+
+extension Film {
+	mutating func drawPixel(_ pixel: Px, at point: PxL, selection: BitSet?) {
+		guard let index = size.index(at: point) else { return }
+		let localIndex = index % size.count
+		guard selection?[localIndex] ?? true else { return }
+		pxs[index] = pixel
+	}
+
+	mutating func floodFill(
+		at point: PxL,
+		primary: Px,
+		secondary: Px,
+		selection: BitSet?
+	) {
+		let size = size
+		let start = point.xy
+		guard let startIndex = size.index(at: start), selection?[startIndex] ?? true else { return }
+
+		withMutableLayer(point.z) { pixels in
+			let original = pixels[startIndex]
+			pixels[startIndex] = start.isEven ? primary : secondary
+
+			var visited = BitSet(count: size.count)
+			visited[startIndex] = true
+			var front = [start]
 			while !front.isEmpty {
-				front = front.flatMap { pxl in
-					pxl.neighbors.compactMap { pxl in
-						size.index(at: pxl).flatMap { idx in
-							if !stroke[idx], pxs[idx] == c {
-								pxs[idx] = pxl.isEven ? pc : sc
-								stroke[idx] = true
-								return pxl
-							} else {
-								return .none
+				front = front.flatMap { current in
+					current.neighbors.compactMap { neighbor in
+						size.index(at: neighbor).flatMap { index in
+							guard !visited[index], selection?[index] ?? true, pixels[index] == original else {
+								return nil
 							}
+							pixels[index] = neighbor.isEven ? primary : secondary
+							visited[index] = true
+							return neighbor
 						}
 					}
 				}
@@ -77,17 +168,33 @@ private extension EditorView {
 		}
 	}
 
-	private func replace(at pxl: PxL) {
-		guard let idx = film.size.index(at: pxl) else { return }
-		let c = film.pxs[idx]
-		let pc = state.primaryColor
-		let sc = state.dither ? state.secondaryColor : pc
+	mutating func replaceColor(
+		at point: PxL,
+		primary: Px,
+		secondary: Px,
+		selection: BitSet?
+	) {
+		guard let absoluteIndex = size.index(at: point) else { return }
+		let original = pxs[absoluteIndex]
+		withMutableLayer(point.z) { [size] pixels in
+			for index in pixels.indices where (selection?[index] ?? true) && pixels[index] == original {
+				pixels[index] = size.pxl(at: index).isEven ? primary : secondary
+			}
+		}
+	}
 
-		film.withMutableLayer(pxl.z) { [size = film.size] pxs in
-			var span = pxs.mutableSpan
-			for idx in span.indices where span[idx] == c {
-				let rc = size.pxl(at: idx).isEven ? pc : sc
-				span[idx] = rc
+	mutating func drawLine(
+		from start: PxL,
+		to end: PxL,
+		primary: Px,
+		secondary: Px,
+		selection: BitSet?
+	) {
+		let size = size
+		withMutableLayer(start.z) { pixels in
+			for point in rasterizedLine(from: start, to: end) {
+				guard let index = size.index(at: point.xy), selection?[index] ?? true else { continue }
+				pixels[index] = point.isEven ? primary : secondary
 			}
 		}
 	}
