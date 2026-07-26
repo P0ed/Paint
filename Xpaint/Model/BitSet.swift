@@ -107,6 +107,19 @@ extension BitSet {
 		}
 		return result
 	}
+
+	/// The mask shifted by `dx` columns and `dy` rows, dropping whatever leaves the canvas.
+	/// Rows run the way `Film.move` counts them, so a positive `dy` travels with the down arrow.
+	func moved(size: FilmSize, dx: Int, dy: Int) -> BitSet {
+		var result = BitSet(count: count)
+		for index in self {
+			let column = index % size.width + dx
+			let row = index / size.width + dy
+			guard (0..<size.width).contains(column), (0..<size.height).contains(row) else { continue }
+			result[column + row * size.width] = true
+		}
+		return result
+	}
 }
 
 extension Optional where Wrapped == BitSet {

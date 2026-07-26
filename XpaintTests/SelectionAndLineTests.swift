@@ -180,6 +180,25 @@ final class InteractionStateTests: XCTestCase {
 		XCTAssertEqual(state.selectionSession?.preview, preview)
 	}
 
+	func testMovingTheSelectionSlidesTheMaskAndClipsAtTheEdge() {
+		var state = EditorState()
+		state.moveSelection(dx: 1, size: size)
+		XCTAssertNil(state.selection)
+
+		var mask = BitSet(count: size.count)
+		mask[0] = true
+		mask[3] = true
+		state.selection = mask
+
+		// Index 3 sits in the rightmost column, so it falls off; index 0 shifts one column over.
+		state.moveSelection(dx: 1, size: size)
+		XCTAssertEqual(Array(state.selection!), [1])
+
+		// A positive `dy` travels with the down arrow, matching how `move` shifts pixels.
+		state.moveSelection(dy: 1, size: size)
+		XCTAssertEqual(Array(state.selection!), [5])
+	}
+
 	func testDragAndClickClickLineTransitionsAndCancellation() {
 		var state = EditorState()
 		state.tool = .line

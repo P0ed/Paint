@@ -111,6 +111,11 @@ extension EditorState {
 		}
 	}
 
+	/// Slides the committed mask, if there is one, leaving the pixels under it alone.
+	mutating func moveSelection(dx: Int = 0, dy: Int = 0, size: FilmSize) {
+		selection = selection?.moved(size: size, dx: dx, dy: dy)
+	}
+
 	mutating func beginLineGesture(at point: PxL) {
 		let point = PxL(x: point.x, y: point.y, z: layer)
 		if let session = lineSession, session.phase == .pending {
