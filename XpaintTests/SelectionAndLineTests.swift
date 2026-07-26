@@ -315,7 +315,8 @@ final class SelectionClippingTests: XCTestCase {
 
 		harness.film.pxs = [red, green, blue]
 		harness.operations.move(dx: 1)
-		XCTAssertEqual(harness.film.pxs, [red, red, blue])
+		// Green has nowhere to go and blue is protected by sitting outside the selection.
+		XCTAssertEqual(harness.film.pxs, [red, .clear, blue])
 
 		harness.operations.wipeLayer()
 		XCTAssertEqual(harness.film.pxs, [red, .clear, blue])
@@ -323,6 +324,28 @@ final class SelectionClippingTests: XCTestCase {
 		harness.state.secondaryColor = green
 		harness.operations.fillLayer()
 		XCTAssertEqual(harness.film.pxs, [red, green, blue])
+	}
+
+	func testMovingInsideASelectionShiftsItsContentAndClearsBehindIt() {
+		let harness = Harness(film: Film(width: 3, height: 1, frames: 1, color: .clear))
+		harness.film.pxs = [red, green, blue]
+		var pair = BitSet(count: 3)
+		pair[1] = true
+		pair[2] = true
+		harness.state.selection = pair
+
+		harness.operations.move(dx: 1)
+		// Green shifts onto blue, the cell it left clears, and red never takes part.
+		XCTAssertEqual(harness.film.pxs, [red, .clear, green])
+	}
+
+	func testMovingASelectionNeverWrapsAcrossRows() {
+		let harness = Harness(film: Film(width: 2, height: 2, frames: 1, color: .clear))
+		harness.film.pxs = [red, green, blue, red]
+		harness.state.selection = BitSet(count: 4, filled: true)
+
+		harness.operations.move(dx: 1)
+		XCTAssertEqual(harness.film.pxs, [.clear, red, .clear, blue])
 	}
 
 	func testMoveWithoutASelectionTransformsTheLayerInPlace() {

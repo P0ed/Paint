@@ -57,7 +57,10 @@ extension Operations {
 	}
 
 	func move(dx: Int = 0, dy: Int = 0) {
-		transformLayer { film, layer in film.move(layer: layer, dx: dx, dy: dy) }
+		guard let selection = state.selection else {
+			return film.move(layer: state.layer, dx: dx, dy: dy)
+		}
+		film.move(layer: state.layer, dx: dx, dy: dy, selection: selection)
 	}
 
 	func cut() {

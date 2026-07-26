@@ -111,6 +111,24 @@ extension Film {
 		}
 	}
 
+	/// Shifts only the pixels `selection` covers, clearing the cells the shift leaves empty.
+	/// Nothing outside the mask is read or written, so content pushed past its edge is lost.
+	mutating func move(layer: Int, dx: Int = 0, dy: Int = 0, selection: BitSet) {
+		let source = Array(pxs[range(layer)])
+		withMutableLayer(layer) { [size] pxs in
+			for index in selection {
+				let column = index % size.width - dx
+				let row = index / size.width - dy
+				let origin = column + row * size.width
+				pxs[index] = (0..<size.width).contains(column)
+					&& (0..<size.height).contains(row)
+					&& selection[origin]
+				? source[origin]
+				: .clear
+			}
+		}
+	}
+
 	mutating func withFilmContext(
 		interpolationQuality: CGInterpolationQuality = .none,
 		_ body: (CGContext) -> Void
