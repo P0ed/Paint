@@ -106,7 +106,11 @@ struct EditorView<ContentType: TypeProvider>: View {
 				height: scale
 			)
 			let color = point.isEven ? primary : secondary
-			context.fill(Path(rect), with: .color(color.ui))
+			context.fill(
+				Path(rect),
+				with: .color(color.ui),
+				style: FillStyle(eoFill: false, antialiased: false)
+			)
 		}
 	}
 

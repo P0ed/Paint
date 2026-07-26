@@ -162,9 +162,17 @@ func snappedEndpoint(from start: PxL, to end: PxL) -> PxL {
 
 	let lengthSquared = best.x * best.x + best.y * best.y
 	let multiple = max(1, Int((Double(dx * best.x + dy * best.y) / Double(lengthSquared)).rounded()))
+	var snappedX = best.x * multiple
+	var snappedY = best.y * multiple
+	if abs(best.x) == 2 {
+		snappedX += best.x.signum()
+	}
+	if abs(best.y) == 2 {
+		snappedY += best.y.signum()
+	}
 	return PxL(
-		x: start.x + best.x * multiple,
-		y: start.y + best.y * multiple,
+		x: start.x + snappedX,
+		y: start.y + snappedY,
 		z: start.z
 	)
 }
