@@ -129,7 +129,7 @@ extension EditorState {
 	mutating func updateLine(to point: PxL, snapped: Bool) {
 		guard var session = lineSession else { return }
 		let point = PxL(x: point.x, y: point.y, z: session.start.z)
-		session.end = snapped ? snappedEndpoint(from: session.start, to: point) : point
+		session.end = snapped ? session.start.snappedEndpoint(to: point) : point
 		if case let .gesture(committable) = session.phase {
 			session.phase = .gesture(committable: committable || point.xy != session.start.xy)
 		}

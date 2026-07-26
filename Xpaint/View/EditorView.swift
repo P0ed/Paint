@@ -96,7 +96,7 @@ struct EditorView<ContentType: TypeProvider>: View {
 		let primary = state.primaryColor
 		let secondary = state.ditherColor
 
-		for point in rasterizedLine(from: session.start, to: session.end) {
+		for point in [PxL].rasterizedLine(from: session.start, to: session.end) {
 			guard let index = film.size.index(at: point.xy), selection.allows(index) else { continue }
 			let row = film.size.height - 1 - point.y
 			let rect = CGRect(

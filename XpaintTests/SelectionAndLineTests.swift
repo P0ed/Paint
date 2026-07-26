@@ -47,8 +47,8 @@ final class BitSetAndGeometryTests: XCTestCase {
 		let deltas = [(5, 2), (2, 5), (-2, 5), (-5, 2), (-5, -2), (-2, -5), (2, -5), (5, -2)]
 		for delta in deltas {
 			let end = PxL(x: origin.x + delta.0, y: origin.y + delta.1, z: 2)
-			let forward = rasterizedLine(from: origin, to: end)
-			let reverse = rasterizedLine(from: end, to: origin)
+			let forward = [PxL].rasterizedLine(from: origin, to: end)
+			let reverse = [PxL].rasterizedLine(from: end, to: origin)
 			XCTAssertEqual(forward.first, origin)
 			XCTAssertEqual(forward.last, end)
 			XCTAssertEqual(forward.count, max(abs(delta.0), abs(delta.1)) + 1)
@@ -58,7 +58,7 @@ final class BitSetAndGeometryTests: XCTestCase {
 				XCTAssertLessThanOrEqual(abs(pair.0.y - pair.1.y), 1)
 			}
 		}
-		XCTAssertEqual(rasterizedLine(from: origin, to: origin), [origin])
+		XCTAssertEqual([PxL].rasterizedLine(from: origin, to: origin), [origin])
 	}
 
 	func testSnappingPreservesEverySupportedDirectionAndSign() {
@@ -73,7 +73,7 @@ final class BitSetAndGeometryTests: XCTestCase {
 					let extraX = abs(x) == 2 ? x.signum() : 0
 					let extraY = abs(y) == 2 ? y.signum() : 0
 					XCTAssertEqual(
-						snappedEndpoint(from: start, to: end),
+						start.snappedEndpoint(to: end),
 						PxL(x: end.x + extraX, y: end.y + extraY, z: end.z)
 					)
 				}
@@ -83,8 +83,8 @@ final class BitSetAndGeometryTests: XCTestCase {
 
 	func testTwoToOneSnappedLinesBeginAndEndWithTwoPixelsOnTheMajorAxis() {
 		let start = PxL(x: 0, y: 0, z: 3)
-		let shallowEnd = snappedEndpoint(from: start, to: PxL(x: 4, y: 2, z: 3))
-		let shallow = rasterizedLine(from: start, to: shallowEnd)
+		let shallowEnd = start.snappedEndpoint(to: PxL(x: 4, y: 2, z: 3))
+		let shallow = [PxL].rasterizedLine(from: start, to: shallowEnd)
 		XCTAssertEqual(
 			Array(shallow.prefix(2)),
 			[PxL(x: 0, y: 0, z: 3), PxL(x: 1, y: 0, z: 3)]
@@ -94,8 +94,8 @@ final class BitSetAndGeometryTests: XCTestCase {
 			[PxL(x: 4, y: 2, z: 3), PxL(x: 5, y: 2, z: 3)]
 		)
 
-		let steepEnd = snappedEndpoint(from: start, to: PxL(x: 2, y: 4, z: 3))
-		let steep = rasterizedLine(from: start, to: steepEnd)
+		let steepEnd = start.snappedEndpoint(to: PxL(x: 2, y: 4, z: 3))
+		let steep = [PxL].rasterizedLine(from: start, to: steepEnd)
 		XCTAssertEqual(
 			Array(steep.prefix(2)),
 			[PxL(x: 0, y: 0, z: 3), PxL(x: 0, y: 1, z: 3)]

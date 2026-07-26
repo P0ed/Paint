@@ -43,66 +43,69 @@ private let snapDirections = [
 	(x: 0, y: -1), (x: 0, y: 1),
 ]
 
-/// Bresenham rasterization of the pixels between `start` and `end`, on `start`'s layer.
-func rasterizedLine(from start: PxL, to end: PxL) -> [PxL] {
-	var result: [PxL] = []
-	var x = start.x
-	var y = start.y
-	let dx = abs(end.x - start.x)
-	let sx = start.x < end.x ? 1 : -1
-	let dy = -abs(end.y - start.y)
-	let sy = start.y < end.y ? 1 : -1
-	var error = dx + dy
-	result.reserveCapacity(max(dx, -dy) + 1)
+extension [PxL] {
+	/// Bresenham rasterization of the pixels between `start` and `end`, on `start`'s layer.
+	static func rasterizedLine(from start: PxL, to end: PxL) -> [PxL] {
+		var result: [PxL] = []
+		var x = start.x
+		var y = start.y
+		let dx = abs(end.x - start.x)
+		let sx = start.x < end.x ? 1 : -1
+		let dy = -abs(end.y - start.y)
+		let sy = start.y < end.y ? 1 : -1
+		var error = dx + dy
+		result.reserveCapacity(Swift.max(dx, -dy) + 1)
 
-	while true {
-		result.append(PxL(x: x, y: y, z: start.z))
-		if x == end.x, y == end.y { break }
-		let doubled = 2 * error
-		if doubled >= dy {
-			error += dy
-			x += sx
+		while true {
+			result.append(PxL(x: x, y: y, z: start.z))
+			if x == end.x, y == end.y { break }
+			let doubled = 2 * error
+			if doubled >= dy {
+				error += dy
+				x += sx
+			}
+			if doubled <= dx {
+				error += dx
+				y += sy
+			}
 		}
-		if doubled <= dx {
-			error += dx
-			y += sy
-		}
+		return result
 	}
-	return result
 }
 
-/// `end` pulled onto whichever `snapDirections` entry best matches the direction it was dragged in.
-func snappedEndpoint(from start: PxL, to end: PxL) -> PxL {
-	let dx = end.x - start.x
-	let dy = end.y - start.y
-	guard dx != 0 || dy != 0 else { return end }
+extension PxL {
 
-	let deltaLength = Double(dx * dx + dy * dy)
-	var best = (x: 1, y: 0)
-	var bestScore = -Double.infinity
+	func snappedEndpoint(to end: PxL) -> PxL {
+		let dx = end.x - x
+		let dy = end.y - y
+		guard dx != 0 || dy != 0 else { return end }
 
-	for direction in snapDirections {
-		let dot = Double(dx * direction.x + dy * direction.y)
-		guard dot > 0 else { continue }
-		let directionLength = Double(direction.x * direction.x + direction.y * direction.y)
-		let score = dot / (deltaLength * directionLength).squareRoot()
-		if score > bestScore {
-			bestScore = score
-			best = direction
+		let deltaLength = Double(dx * dx + dy * dy)
+		var best = (x: 1, y: 0)
+		var bestScore = -Double.infinity
+
+		for direction in snapDirections {
+			let dot = Double(dx * direction.x + dy * direction.y)
+			guard dot > 0 else { continue }
+			let directionLength = Double(direction.x * direction.x + direction.y * direction.y)
+			let score = dot / (deltaLength * directionLength).squareRoot()
+			if score > bestScore {
+				bestScore = score
+				best = direction
+			}
 		}
+
+		let lengthSquared = best.x * best.x + best.y * best.y
+		let multiple = max(1, Int((Double(dx * best.x + dy * best.y) / Double(lengthSquared)).rounded()))
+		let overshootX = abs(best.x) == 2 ? best.x.signum() : 0
+		let overshootY = abs(best.y) == 2 ? best.y.signum() : 0
+
+		return PxL(
+			x: x + best.x * multiple + overshootX,
+			y: y + best.y * multiple + overshootY,
+			z: z
+		)
 	}
-
-	// A 2:1 direction repeated `multiple` times still needs its trailing pair of pixels.
-	let lengthSquared = best.x * best.x + best.y * best.y
-	let multiple = max(1, Int((Double(dx * best.x + dy * best.y) / Double(lengthSquared)).rounded()))
-	let overshootX = abs(best.x) == 2 ? best.x.signum() : 0
-	let overshootY = abs(best.y) == 2 ? best.y.signum() : 0
-
-	return PxL(
-		x: start.x + best.x * multiple + overshootX,
-		y: start.y + best.y * multiple + overshootY,
-		z: start.z
-	)
 }
 
 struct FilmSize: Hashable {

@@ -189,7 +189,7 @@ extension Film {
 	) {
 		let size = size
 		withMutableLayer(start.z) { pixels in
-			for point in rasterizedLine(from: start, to: end) {
+			for point in [PxL].rasterizedLine(from: start, to: end) {
 				guard let index = size.index(at: point.xy), selection.allows(index) else { continue }
 				pixels[index] = point.isEven ? primary : secondary
 			}
