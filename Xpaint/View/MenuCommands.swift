@@ -68,6 +68,16 @@ struct MenuCommands: Commands {
 			)
 			Divider()
 		}
+		CommandMenu("Selection") {
+			ActionButton(
+				name: "Deselect",
+				image: "rectangle.dashed",
+				shortcut: "A",
+				modifiers: [.command, .shift],
+				disabled: op.actionsDisabled,
+				action: { op?.state.clearSelection() }
+			)
+		}
 		CommandMenu("Operations") {
 			ActionButton(
 				name: "Resize",
@@ -80,10 +90,17 @@ struct MenuCommands: Commands {
 			ActionButton(
 				name: "Wipe",
 				image: "windshield.rear.and.wiper",
-				shortcut: "W",
-				modifiers: .control,
+				shortcut: KeyEquivalent.delete.character,
 				disabled: op.actionsDisabled,
 				action: { op?.wipeLayer() }
+			)
+			ActionButton(
+				name: "Fill",
+				image: "paintbrush.fill",
+				shortcut: KeyEquivalent.delete.character,
+				modifiers: .option,
+				disabled: op.actionsDisabled,
+				action: { op?.fillLayer() }
 			)
 			Divider()
 			ActionButton(

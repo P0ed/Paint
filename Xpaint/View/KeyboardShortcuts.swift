@@ -11,6 +11,26 @@ extension EditorView {
 			let modifiers = keys.modifiers
 			let chars = keys.characters
 
+			// Escape drops the gesture in flight; the committed selection survives it.
+			// Deselect lives in `MenuCommands`; the main menu claims it first.
+			if keys.key == .escape {
+				guard state.selectionSession != nil || state.lineSession != nil else {
+					return .ignored
+				}
+				state.cancelSessions()
+				return .handled
+			}
+
+			func arrowAction(dx: Int = 0, dy: Int = 0) {
+				guard !modifiers.contains(.command) else {
+					// Command slides the marching ants, leaving the pixels where they are.
+					return state.moveSelection(dx: dx, dy: dy, size: film.size)
+				}
+				// Option trails the secondary colour behind the move instead of clearing.
+				let fill: Px = modifiers.contains(.option) ? state.secondaryColor : .clear
+				dispatch { operations.move(dx: dx, dy: dy, fill: fill) }
+			}
+
 			func numAction(_ num: Int) {
 				let idx = num + (modifiers.contains(.shift) ? 8 : 0)
 				if modifiers.contains(.command) {
@@ -36,10 +56,10 @@ extension EditorView {
 				switch keys.key.character {
 				case "\u{9}": state.nextLayer()
 				case "\u{19}": state.prevLayer()
-				case KeyEquivalent.leftArrow.character: dispatch { operations.move(dx: -1) }
-				case KeyEquivalent.downArrow.character: dispatch { operations.move(dy: 1) }
-				case KeyEquivalent.upArrow.character: dispatch { operations.move(dy: -1) }
-				case KeyEquivalent.rightArrow.character: dispatch { operations.move(dx: 1) }
+				case KeyEquivalent.leftArrow.character: arrowAction(dx: -1)
+				case KeyEquivalent.downArrow.character: arrowAction(dy: 1)
+				case KeyEquivalent.upArrow.character: arrowAction(dy: -1)
+				case KeyEquivalent.rightArrow.character: arrowAction(dx: 1)
 				default: return .ignored
 				}
 			}

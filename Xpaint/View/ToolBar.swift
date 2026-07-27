@@ -14,10 +14,12 @@ extension EditorView {
 		}
 		ToolbarItemGroup {
 			ToolButton(tool: .pencil, state: $state.tool)
+			ToolButton(tool: .line, state: $state.tool)
 			ToolButton(tool: .eyedropper, state: $state.tool)
 			ToolButton(tool: .eraser, state: $state.tool)
 			ToolButton(tool: .bucket, state: $state.tool)
 			ToolButton(tool: .replace, state: $state.tool)
+			ToolButton(tool: .selection, state: $state.tool)
 		}
 		ToolbarItemGroup { Spacer() }
 		ToolbarItemGroup {
