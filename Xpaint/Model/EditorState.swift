@@ -38,7 +38,6 @@ struct SelectionSession: Equatable {
 	var start: PxL
 	var end: PxL
 	var mode: SelectionMode
-	/// The mask this drag would commit, rebuilt only when the drag reaches another pixel.
 	var preview: BitSet?
 
 	var didDrag: Bool { start.xy != end.xy }
@@ -47,7 +46,6 @@ struct SelectionSession: Equatable {
 struct LineSession: Equatable {
 	enum Phase: Equatable {
 		case pending
-		/// An in-flight drag. `committable` once it has travelled far enough to be worth drawing.
 		case gesture(committable: Bool)
 	}
 
@@ -58,13 +56,11 @@ struct LineSession: Equatable {
 
 extension EditorState {
 
-	/// Drops any in-progress gesture, keeping the committed selection.
 	mutating func cancelSessions() {
 		selectionSession = nil
 		lineSession = nil
 	}
 
-	/// Hides or restores the committed mask, keeping its bits either way.
 	mutating func toggleSelection() {
 		selection.toggle()
 	}
@@ -90,7 +86,6 @@ extension EditorState {
 		selectionSession = session
 	}
 
-	/// What the canvas draws: the drag in flight when there is one, otherwise the committed mask.
 	var selectionPreview: BitSet? {
 		selectionSession?.preview ?? selection.mask
 	}
@@ -100,7 +95,6 @@ extension EditorState {
 		if session.didDrag, let preview = session.preview {
 			selection = Selection(preview)
 		} else if session.mode == .replace {
-			// A click that selects nothing switches the mask off, but keeps it for the toggle.
 			selection.active = false
 		}
 		selectionSession = nil
@@ -111,13 +105,11 @@ extension EditorState {
 		return switch session.mode {
 		case .replace: rectangle
 		case .union: selection.mask?.union(rectangle) ?? rectangle
-		// An inactive selection means the whole layer, so subtracting leaves all but the rectangle.
 		case .subtract: (selection.mask ?? BitSet(count: size.count, filled: true))
 			.subtracting(rectangle)
 		}
 	}
 
-	/// Slides the committed mask, if there is one, leaving the pixels under it alone.
 	mutating func moveSelection(dx: Int = 0, dy: Int = 0, size: FilmSize) {
 		selection.move(size: size, dx: dx, dy: dy)
 	}
@@ -125,7 +117,6 @@ extension EditorState {
 	mutating func beginLineGesture(at point: PxL) {
 		let point = PxL(x: point.x, y: point.y, z: layer)
 		if let session = lineSession, session.phase == .pending {
-			// Second click of a click-click line: it commits however short the drag is.
 			lineSession = LineSession(start: session.start, end: point, phase: .gesture(committable: true))
 		} else if lineSession == nil {
 			lineSession = LineSession(start: point, end: point, phase: .gesture(committable: false))
@@ -152,7 +143,6 @@ extension EditorState {
 			return nil
 		}
 		guard committable else {
-			// A click that went nowhere: arm the first point and wait for the second click.
 			lineSession = LineSession(start: session.start, end: session.end, phase: .pending)
 			return nil
 		}
@@ -188,7 +178,6 @@ extension EditorState {
 
 	var colors: [Px] { [primaryColor, secondaryColor] }
 
-	/// The colour every tool alternates with while dithering; `primaryColor` when dithering is off.
 	var ditherColor: Px { dither ? secondaryColor : primaryColor }
 
 	mutating func toggleLayer() {

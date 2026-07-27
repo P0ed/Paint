@@ -34,7 +34,6 @@ struct PxL: Hashable {
 	}
 }
 
-/// Directions a snapped line may take, ordered so that ties resolve to the earliest entry.
 private let snapDirections = [
 	(x: -1, y: 0), (x: 1, y: 0),
 	(x: -2, y: -1), (x: -2, y: 1), (x: 2, y: -1), (x: 2, y: 1),
@@ -44,7 +43,7 @@ private let snapDirections = [
 ]
 
 extension [PxL] {
-	/// Bresenham rasterization of the pixels between `start` and `end`, on `start`'s layer.
+
 	static func rasterizedLine(from start: PxL, to end: PxL) -> [PxL] {
 		var result: [PxL] = []
 		var x = start.x

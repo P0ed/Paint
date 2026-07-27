@@ -89,7 +89,6 @@ struct BitSet: Equatable, Sequence {
 
 extension BitSet {
 
-	/// Bits set for every pixel inside the rectangle spanned by `start` and `end`, clipped to `size`.
 	static func rectangle(size: FilmSize, from start: PxL, to end: PxL) -> BitSet {
 		var result = BitSet(count: size.count)
 		let minX = Swift.max(0, Swift.min(start.x, end.x))
@@ -108,8 +107,6 @@ extension BitSet {
 		return result
 	}
 
-	/// The mask shifted by `dx` columns and `dy` rows, dropping whatever leaves the canvas.
-	/// Rows run the way `Film.move` counts them, so a positive `dy` travels with the down arrow.
 	func moved(size: FilmSize, dx: Int, dy: Int) -> BitSet {
 		var result = BitSet(count: count)
 		for index in self {
@@ -124,7 +121,6 @@ extension BitSet {
 
 extension Optional where Wrapped == BitSet {
 
-	/// Selection semantics: the absence of a selection means the whole layer is writable.
 	func allows(_ index: Int) -> Bool {
 		self?[index] ?? true
 	}

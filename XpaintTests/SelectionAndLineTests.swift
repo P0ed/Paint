@@ -3,6 +3,7 @@ import SwiftUI
 @testable import Xpaint
 
 final class BitSetAndGeometryTests: XCTestCase {
+
 	func testBitSetAlgebraIterationAndBoundsSafety() {
 		var lhs = BitSet(count: 10)
 		lhs[-1] = true
@@ -123,7 +124,6 @@ final class InteractionStateTests: XCTestCase {
 		mask[5] = true
 		state.selection = Selection(mask)
 
-		// Off reads exactly like no selection at all, and the bits wait for the way back.
 		state.toggleSelection()
 		XCTAssertNil(state.selection.mask)
 		XCTAssertTrue(state.selection.allows(0))
@@ -145,7 +145,6 @@ final class InteractionStateTests: XCTestCase {
 			Array(0..<size.count).filter { $0 != 5 }
 		)
 
-		// An inactive selection covers everything, so inverting it selects nothing.
 		state.selection.active = false
 		state.invertSelection(size: size)
 		XCTAssertTrue(state.selection.active)
@@ -166,7 +165,6 @@ final class InteractionStateTests: XCTestCase {
 		state.endSelection()
 		XCTAssertEqual(state.selection, original)
 
-		// A bare click switches the mask off; the toggle can still bring it back.
 		state.beginSelection(at: PxL(x: 1, y: 1, z: 0), mode: .replace)
 		state.endSelection()
 		XCTAssertNil(state.selection.mask)
@@ -211,7 +209,6 @@ final class InteractionStateTests: XCTestCase {
 		let preview = state.selectionSession?.preview
 		XCTAssertEqual(Array(preview!), [8, 9, 12, 13])
 
-		// A move within the same pixel must not rebuild the mask.
 		state.selection = Selection(BitSet(count: size.count))
 		state.updateSelection(to: PxL(x: 1, y: 1, z: 1), size: size)
 		XCTAssertEqual(state.selectionSession?.preview, preview)
@@ -227,11 +224,9 @@ final class InteractionStateTests: XCTestCase {
 		mask[3] = true
 		state.selection = Selection(mask)
 
-		// Index 3 sits in the rightmost column, so it falls off; index 0 shifts one column over.
 		state.moveSelection(dx: 1, size: size)
 		XCTAssertEqual(Array(state.selection.bits), [1])
 
-		// A positive `dy` travels with the down arrow, matching how `move` shifts pixels.
 		state.moveSelection(dy: 1, size: size)
 		XCTAssertEqual(Array(state.selection.bits), [5])
 	}
@@ -270,7 +265,6 @@ final class InteractionStateTests: XCTestCase {
 		state.lineSession = LineSession(start: a, end: b, phase: .pending)
 		state.beginSelection(at: a, mode: .replace)
 
-		// What Escape does: the gestures go, the committed selection stays.
 		state.cancelSessions()
 		XCTAssertEqual(state.selection, Selection(BitSet(count: size.count, filled: true)))
 		XCTAssertNil(state.lineSession)
@@ -352,7 +346,6 @@ final class SelectionClippingTests: XCTestCase {
 
 		harness.film.pxs = [red, green, blue]
 		harness.operations.move(dx: 1)
-		// Green has nowhere to go and blue is protected by sitting outside the selection.
 		XCTAssertEqual(harness.film.pxs, [red, .clear, blue])
 
 		harness.operations.wipeLayer()
@@ -372,7 +365,6 @@ final class SelectionClippingTests: XCTestCase {
 		harness.state.selection = Selection(pair)
 
 		harness.operations.move(dx: 1)
-		// Green shifts onto blue, the cell it left clears, and red never takes part.
 		XCTAssertEqual(harness.film.pxs, [red, .clear, green])
 	}
 

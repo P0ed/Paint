@@ -112,11 +112,9 @@ private extension Operations {
 		}
 	}
 
-	/// Runs `transform` in place, restoring the pixels the selection excludes from a one-layer backup.
 	func transformLayer(_ transform: (inout Film, Int) -> Void) {
 		let layer = state.layer
 		guard let selection = state.selection.mask else {
-			// Nothing to clip against, so the transform needs no backup at all.
 			return transform(&film, layer)
 		}
 		let original = Array(film.pxs[film.range(layer)])

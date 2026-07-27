@@ -11,8 +11,6 @@ extension EditorView {
 			let modifiers = keys.modifiers
 			let chars = keys.characters
 
-			// Escape drops the gesture in flight; the committed selection survives it.
-			// Toggle and invert live in `MenuCommands`; the main menu claims Return first.
 			if keys.key == .escape {
 				guard state.selectionSession != nil || state.lineSession != nil else {
 					return .ignored
@@ -23,10 +21,8 @@ extension EditorView {
 
 			func arrowAction(dx: Int = 0, dy: Int = 0) {
 				guard !modifiers.contains(.command) else {
-					// Command slides the marching ants, leaving the pixels where they are.
 					return state.moveSelection(dx: dx, dy: dy, size: film.size)
 				}
-				// Option trails the secondary colour behind the move instead of clearing.
 				let fill: Px = modifiers.contains(.option) ? state.secondaryColor : .clear
 				dispatch { operations.move(dx: dx, dy: dy, fill: fill) }
 			}
