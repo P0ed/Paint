@@ -88,7 +88,7 @@ private extension EditorView {
 
 	func pencil(_ px: Px? = .none, at pxl: PxL) {
 		let px = px ?? (pxl.isEven ? state.primaryColor : state.ditherColor)
-		film.drawPixel(px, at: pxl, selection: state.selection)
+		film.drawPixel(px, at: pxl, selection: state.selection.mask)
 	}
 
 	func bucket(at pxl: PxL) {
@@ -96,7 +96,7 @@ private extension EditorView {
 			at: pxl,
 			primary: state.primaryColor,
 			secondary: state.ditherColor,
-			selection: state.selection
+			selection: state.selection.mask
 		)
 	}
 
@@ -105,7 +105,7 @@ private extension EditorView {
 			at: pxl,
 			primary: state.primaryColor,
 			secondary: state.ditherColor,
-			selection: state.selection
+			selection: state.selection.mask
 		)
 	}
 
@@ -116,7 +116,7 @@ private extension EditorView {
 				to: end,
 				primary: state.primaryColor,
 				secondary: state.ditherColor,
-				selection: state.selection
+				selection: state.selection.mask
 			)
 		}
 	}

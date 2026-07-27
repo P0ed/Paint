@@ -10,7 +10,7 @@ struct EditorState: Equatable {
 		}
 	}
 	var dither: Bool = false
-	var selection: BitSet?
+	var selection: Selection = .none
 	var selectionSession: SelectionSession?
 	var lineSession: LineSession?
 	var layer: Int = 0
@@ -64,13 +64,17 @@ extension EditorState {
 		lineSession = nil
 	}
 
-	mutating func clearSelection() {
-		selection = nil
-		selectionSession = nil
+	/// Hides or restores the committed mask, keeping its bits either way.
+	mutating func toggleSelection() {
+		selection.toggle()
+	}
+
+	mutating func invertSelection(size: FilmSize) {
+		selection.invert(size: size)
 	}
 
 	mutating func resetTransientInteractions() {
-		selection = nil
+		selection = .none
 		cancelSessions()
 	}
 
@@ -88,15 +92,16 @@ extension EditorState {
 
 	/// What the canvas draws: the drag in flight when there is one, otherwise the committed mask.
 	var selectionPreview: BitSet? {
-		selectionSession?.preview ?? selection
+		selectionSession?.preview ?? selection.mask
 	}
 
 	mutating func endSelection() {
 		guard let session = selectionSession else { return }
-		if session.didDrag {
-			selection = session.preview
+		if session.didDrag, let preview = session.preview {
+			selection = Selection(preview)
 		} else if session.mode == .replace {
-			selection = nil
+			// A click that selects nothing switches the mask off, but keeps it for the toggle.
+			selection.active = false
 		}
 		selectionSession = nil
 	}
@@ -105,15 +110,16 @@ extension EditorState {
 		let rectangle = BitSet.rectangle(size: size, from: session.start, to: session.end)
 		return switch session.mode {
 		case .replace: rectangle
-		case .union: selection?.union(rectangle) ?? rectangle
-		// No selection means the whole layer, so subtracting leaves everything but the rectangle.
-		case .subtract: (selection ?? BitSet(count: size.count, filled: true)).subtracting(rectangle)
+		case .union: selection.mask?.union(rectangle) ?? rectangle
+		// An inactive selection means the whole layer, so subtracting leaves all but the rectangle.
+		case .subtract: (selection.mask ?? BitSet(count: size.count, filled: true))
+			.subtracting(rectangle)
 		}
 	}
 
 	/// Slides the committed mask, if there is one, leaving the pixels under it alone.
 	mutating func moveSelection(dx: Int = 0, dy: Int = 0, size: FilmSize) {
-		selection = selection?.moved(size: size, dx: dx, dy: dy)
+		selection.move(size: size, dx: dx, dy: dy)
 	}
 
 	mutating func beginLineGesture(at point: PxL) {

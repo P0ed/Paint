@@ -113,14 +113,49 @@ final class InteractionStateTests: XCTestCase {
 	func testAbsentAndEmptySelectionsDiffer() {
 		var state = EditorState()
 		XCTAssertTrue(state.selection.allows(0))
-		state.selection = BitSet(count: size.count)
+		state.selection = Selection(BitSet(count: size.count))
 		XCTAssertFalse(state.selection.allows(0))
+	}
+
+	func testTogglingHidesTheMaskWithoutForgettingIt() {
+		var state = EditorState()
+		var mask = BitSet(count: size.count)
+		mask[5] = true
+		state.selection = Selection(mask)
+
+		// Off reads exactly like no selection at all, and the bits wait for the way back.
+		state.toggleSelection()
+		XCTAssertNil(state.selection.mask)
+		XCTAssertTrue(state.selection.allows(0))
+		XCTAssertEqual(state.selection.bits, mask)
+
+		state.toggleSelection()
+		XCTAssertEqual(state.selection.mask, mask)
+	}
+
+	func testInvertingSwapsTheSelectedPixelsAndTreatsOffAsTheWholeLayer() {
+		var state = EditorState()
+		var mask = BitSet(count: size.count)
+		mask[5] = true
+		state.selection = Selection(mask)
+
+		state.invertSelection(size: size)
+		XCTAssertEqual(
+			Array(state.selection.bits),
+			Array(0..<size.count).filter { $0 != 5 }
+		)
+
+		// An inactive selection covers everything, so inverting it selects nothing.
+		state.selection.active = false
+		state.invertSelection(size: size)
+		XCTAssertTrue(state.selection.active)
+		XCTAssertTrue(state.selection.bits.isEmpty)
 	}
 
 	func testModifierPrecedenceAndClickRules() {
 		XCTAssertEqual(SelectionMode(shift: true, option: true), .subtract)
 		var state = EditorState()
-		state.selection = BitSet(count: size.count, filled: true)
+		state.selection = Selection(BitSet(count: size.count, filled: true))
 		let original = state.selection
 
 		state.beginSelection(at: PxL(x: 1, y: 1, z: 0), mode: .union)
@@ -131,9 +166,11 @@ final class InteractionStateTests: XCTestCase {
 		state.endSelection()
 		XCTAssertEqual(state.selection, original)
 
+		// A bare click switches the mask off; the toggle can still bring it back.
 		state.beginSelection(at: PxL(x: 1, y: 1, z: 0), mode: .replace)
 		state.endSelection()
-		XCTAssertNil(state.selection)
+		XCTAssertNil(state.selection.mask)
+		XCTAssertEqual(state.selection.bits, original.bits)
 	}
 
 	func testSelectionUnionAndSubtractionUseStartingMask() {
@@ -141,7 +178,7 @@ final class InteractionStateTests: XCTestCase {
 		state.beginSelection(at: PxL(x: 0, y: 0, z: 0), mode: .replace)
 		state.updateSelection(to: PxL(x: 1, y: 1, z: 0), size: size)
 		state.endSelection()
-		XCTAssertEqual(Array(state.selection!), [8, 9, 12, 13])
+		XCTAssertEqual(Array(state.selection.bits), [8, 9, 12, 13])
 
 		state.beginSelection(at: PxL(x: 2, y: 0, z: 0), mode: .union)
 		state.updateSelection(to: PxL(x: 2, y: 1, z: 0), size: size)
@@ -151,7 +188,7 @@ final class InteractionStateTests: XCTestCase {
 		state.beginSelection(at: PxL(x: 1, y: 0, z: 0), mode: .subtract)
 		state.updateSelection(to: PxL(x: 2, y: 0, z: 0), size: size)
 		state.endSelection()
-		XCTAssertEqual(Array(state.selection!), [8, 9, 10, 12])
+		XCTAssertEqual(Array(state.selection.bits), [8, 9, 10, 12])
 	}
 
 	func testSubtractingWithoutASelectionExcludesTheRectangleFromTheWholeLayer() {
@@ -160,7 +197,7 @@ final class InteractionStateTests: XCTestCase {
 		state.updateSelection(to: PxL(x: 1, y: 1, z: 0), size: size)
 		state.endSelection()
 		XCTAssertEqual(
-			Array(state.selection!),
+			Array(state.selection.bits),
 			Array(0..<size.count).filter { ![8, 9, 12, 13].contains($0) }
 		)
 	}
@@ -175,7 +212,7 @@ final class InteractionStateTests: XCTestCase {
 		XCTAssertEqual(Array(preview!), [8, 9, 12, 13])
 
 		// A move within the same pixel must not rebuild the mask.
-		state.selection = BitSet(count: size.count)
+		state.selection = Selection(BitSet(count: size.count))
 		state.updateSelection(to: PxL(x: 1, y: 1, z: 1), size: size)
 		XCTAssertEqual(state.selectionSession?.preview, preview)
 	}
@@ -183,20 +220,20 @@ final class InteractionStateTests: XCTestCase {
 	func testMovingTheSelectionSlidesTheMaskAndClipsAtTheEdge() {
 		var state = EditorState()
 		state.moveSelection(dx: 1, size: size)
-		XCTAssertNil(state.selection)
+		XCTAssertNil(state.selection.mask)
 
 		var mask = BitSet(count: size.count)
 		mask[0] = true
 		mask[3] = true
-		state.selection = mask
+		state.selection = Selection(mask)
 
 		// Index 3 sits in the rightmost column, so it falls off; index 0 shifts one column over.
 		state.moveSelection(dx: 1, size: size)
-		XCTAssertEqual(Array(state.selection!), [1])
+		XCTAssertEqual(Array(state.selection.bits), [1])
 
 		// A positive `dy` travels with the down arrow, matching how `move` shifts pixels.
 		state.moveSelection(dy: 1, size: size)
-		XCTAssertEqual(Array(state.selection!), [5])
+		XCTAssertEqual(Array(state.selection.bits), [5])
 	}
 
 	func testDragAndClickClickLineTransitionsAndCancellation() {
@@ -229,18 +266,18 @@ final class InteractionStateTests: XCTestCase {
 		state.tool = .pencil
 		XCTAssertNil(state.lineSession)
 
-		state.selection = BitSet(count: size.count, filled: true)
+		state.selection = Selection(BitSet(count: size.count, filled: true))
 		state.lineSession = LineSession(start: a, end: b, phase: .pending)
 		state.beginSelection(at: a, mode: .replace)
 
 		// What Escape does: the gestures go, the committed selection stays.
 		state.cancelSessions()
-		XCTAssertEqual(state.selection, BitSet(count: size.count, filled: true))
+		XCTAssertEqual(state.selection, Selection(BitSet(count: size.count, filled: true)))
 		XCTAssertNil(state.lineSession)
 		XCTAssertNil(state.selectionSession)
 
 		state.resetTransientInteractions()
-		XCTAssertNil(state.selection)
+		XCTAssertEqual(state.selection, .none)
 	}
 }
 
@@ -303,7 +340,7 @@ final class SelectionClippingTests: XCTestCase {
 		harness.film.pxs = [red, green, blue]
 		var middle = BitSet(count: 3)
 		middle[1] = true
-		harness.state.selection = middle
+		harness.state.selection = Selection(middle)
 
 		harness.operations.cut()
 		XCTAssertEqual(harness.film.pxs, [red, .clear, blue])
@@ -332,7 +369,7 @@ final class SelectionClippingTests: XCTestCase {
 		var pair = BitSet(count: 3)
 		pair[1] = true
 		pair[2] = true
-		harness.state.selection = pair
+		harness.state.selection = Selection(pair)
 
 		harness.operations.move(dx: 1)
 		// Green shifts onto blue, the cell it left clears, and red never takes part.
@@ -350,7 +387,7 @@ final class SelectionClippingTests: XCTestCase {
 		var pair = BitSet(count: 3)
 		pair[1] = true
 		pair[2] = true
-		harness.state.selection = pair
+		harness.state.selection = Selection(pair)
 
 		harness.operations.move(dx: 1, fill: red)
 		XCTAssertEqual(harness.film.pxs, [red, red, green])
@@ -359,7 +396,7 @@ final class SelectionClippingTests: XCTestCase {
 	func testMovingASelectionNeverWrapsAcrossRows() {
 		let harness = Harness(film: Film(width: 2, height: 2, frames: 1, color: .clear))
 		harness.film.pxs = [red, green, blue, red]
-		harness.state.selection = BitSet(count: 4, filled: true)
+		harness.state.selection = Selection(BitSet(count: 4, filled: true))
 
 		harness.operations.move(dx: 1)
 		XCTAssertEqual(harness.film.pxs, [.clear, red, .clear, blue])
@@ -381,7 +418,7 @@ final class SelectionClippingTests: XCTestCase {
 		harness.film.pxs = [original, original, original]
 		var middle = BitSet(count: 3)
 		middle[1] = true
-		harness.state.selection = middle
+		harness.state.selection = Selection(middle)
 
 		harness.operations.shiftRight()
 		XCTAssertEqual(harness.film.pxs[0], original)

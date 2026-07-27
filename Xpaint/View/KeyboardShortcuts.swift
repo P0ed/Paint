@@ -12,7 +12,7 @@ extension EditorView {
 			let chars = keys.characters
 
 			// Escape drops the gesture in flight; the committed selection survives it.
-			// Deselect lives in `MenuCommands`; the main menu claims it first.
+			// Toggle and invert live in `MenuCommands`; the main menu claims Return first.
 			if keys.key == .escape {
 				guard state.selectionSession != nil || state.lineSession != nil else {
 					return .ignored

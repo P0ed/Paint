@@ -70,12 +70,19 @@ struct MenuCommands: Commands {
 		}
 		CommandMenu("Selection") {
 			ActionButton(
-				name: "Deselect",
+				name: "Toggle selection",
 				image: "rectangle.dashed",
-				shortcut: "A",
-				modifiers: [.command, .shift],
+				shortcut: KeyEquivalent.return.character,
 				disabled: op.actionsDisabled,
-				action: { op?.state.clearSelection() }
+				action: { op?.state.toggleSelection() }
+			)
+			ActionButton(
+				name: "Invert selection",
+				image: "square.lefthalf.filled",
+				shortcut: KeyEquivalent.return.character,
+				modifiers: .option,
+				disabled: op.actionsDisabled,
+				action: { op?.invertSelection() }
 			)
 		}
 		CommandMenu("Operations") {

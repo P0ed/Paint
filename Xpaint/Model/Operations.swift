@@ -57,7 +57,7 @@ extension Operations {
 	}
 
 	func move(dx: Int = 0, dy: Int = 0, fill: Px = .clear) {
-		guard let selection = state.selection else {
+		guard let selection = state.selection.mask else {
 			return film.move(layer: state.layer, dx: dx, dy: dy, fill: fill)
 		}
 		film.move(layer: state.layer, dx: dx, dy: dy, fill: fill, selection: selection)
@@ -95,6 +95,10 @@ extension Operations {
 	func applyShader() {
 		transformLayer { film, layer in shader(layer, &film) }
 	}
+
+	func invertSelection() {
+		state.invertSelection(size: film.size)
+	}
 }
 
 private extension Operations {
@@ -111,7 +115,7 @@ private extension Operations {
 	/// Runs `transform` in place, restoring the pixels the selection excludes from a one-layer backup.
 	func transformLayer(_ transform: (inout Film, Int) -> Void) {
 		let layer = state.layer
-		guard let selection = state.selection else {
+		guard let selection = state.selection.mask else {
 			// Nothing to clip against, so the transform needs no backup at all.
 			return transform(&film, layer)
 		}

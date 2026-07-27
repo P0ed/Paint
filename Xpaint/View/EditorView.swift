@@ -91,7 +91,7 @@ struct EditorView<ContentType: TypeProvider>: View {
 
 	private func renderLinePreview(in context: GraphicsContext) {
 		guard let session = state.lineSession else { return }
-		let selection = state.selection
+		let selection = state.selection.mask
 		let scale = state.magnification
 		let primary = state.primaryColor
 		let secondary = state.ditherColor
