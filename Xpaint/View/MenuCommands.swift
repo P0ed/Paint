@@ -102,6 +102,40 @@ struct MenuCommands: Commands {
 				disabled: op.actionsDisabled,
 				action: { op?.state.canvasDialogPresented = true }
 			)
+			Divider()
+			ActionButton(
+				name: "Rotate left",
+				image: "rotate.left",
+				shortcut: "[",
+				modifiers: .command,
+				disabled: op.actionsDisabled,
+				action: { op?.rotateLeft() }
+			)
+			ActionButton(
+				name: "Rotate right",
+				image: "rotate.right",
+				shortcut: "]",
+				modifiers: .command,
+				disabled: op.actionsDisabled,
+				action: { op?.rotateRight() }
+			)
+			ActionButton(
+				name: "Flip horizontally",
+				image: "arrow.left.and.right.righttriangle.left.righttriangle.right",
+				shortcut: "H",
+				modifiers: [.command, .shift],
+				disabled: op.actionsDisabled,
+				action: { op?.flipHorizontally() }
+			)
+			ActionButton(
+				name: "Flip vertically",
+				image: "arrow.up.and.down.righttriangle.up.righttriangle.down",
+				shortcut: "V",
+				modifiers: [.command, .shift],
+				disabled: op.actionsDisabled,
+				action: { op?.flipVertically() }
+			)
+			Divider()
 			ActionButton(
 				name: "Wipe",
 				image: "windshield.rear.and.wiper",

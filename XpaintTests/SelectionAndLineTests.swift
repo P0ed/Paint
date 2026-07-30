@@ -499,6 +499,160 @@ final class CanvasResizeTests: XCTestCase {
 	}
 }
 
+final class RotateAndFlipTests: XCTestCase {
+
+	/// Storage is row-major with row 0 at the visual top, so `pxs` reads like the picture:
+	/// a 3x2 film is `[a, b, c,  d, e, f]` for the rows `a b c` over `d e f`.
+	private func film(width: Int, height: Int, frames: Int = 1) -> Film {
+		var film = Film(width: width, height: height, frames: frames, color: .clear)
+		film.pxs = (0..<film.pxs.count).map { index in
+			Px(alpha: 255, red: UInt8(index + 1), green: 0, blue: 0)
+		}
+		return film
+	}
+
+	func testFlipHorizontallyMirrorsEachRowAndKeepsTheSize() {
+		var f = film(width: 3, height: 2)
+		let p = f.pxs
+		f.flipHorizontally()
+
+		XCTAssertEqual(f.size, FilmSize(width: 3, height: 2, frames: 1))
+		XCTAssertEqual(f.pxs, [p[2], p[1], p[0], p[5], p[4], p[3]])
+	}
+
+	func testFlipVerticallyMirrorsEachColumnAndKeepsTheSize() {
+		var f = film(width: 3, height: 2)
+		let p = f.pxs
+		f.flipVertically()
+
+		XCTAssertEqual(f.size, FilmSize(width: 3, height: 2, frames: 1))
+		XCTAssertEqual(f.pxs, [p[3], p[4], p[5], p[0], p[1], p[2]])
+	}
+
+	func testRotateRightSwapsTheDimensionsAndMovesTheTopRowToTheRightColumn() {
+		var f = film(width: 3, height: 2)
+		let p = f.pxs
+		f.rotateRight()
+
+		XCTAssertEqual(f.size, FilmSize(width: 2, height: 3, frames: 1))
+		XCTAssertEqual(f.pxs, [
+			p[3], p[0],
+			p[4], p[1],
+			p[5], p[2],
+		])
+	}
+
+	func testRotateLeftSwapsTheDimensionsAndMovesTheTopRowToTheLeftColumn() {
+		var f = film(width: 3, height: 2)
+		let p = f.pxs
+		f.rotateLeft()
+
+		XCTAssertEqual(f.size, FilmSize(width: 2, height: 3, frames: 1))
+		XCTAssertEqual(f.pxs, [
+			p[2], p[5],
+			p[1], p[4],
+			p[0], p[3],
+		])
+	}
+
+	func testFlipsAndOppositeRotationsAreInvolutionsOrInverses() {
+		let original = film(width: 3, height: 2, frames: 2)
+
+		var horizontal = original
+		horizontal.flipHorizontally()
+		XCTAssertNotEqual(horizontal, original)
+		horizontal.flipHorizontally()
+		XCTAssertEqual(horizontal, original)
+
+		var vertical = original
+		vertical.flipVertically()
+		XCTAssertNotEqual(vertical, original)
+		vertical.flipVertically()
+		XCTAssertEqual(vertical, original)
+
+		var f = original
+		f.rotateRight()
+		XCTAssertNotEqual(f, original)
+		f.rotateLeft()
+		XCTAssertEqual(f, original)
+
+		f.rotateRight()
+		f.rotateRight()
+		f.rotateRight()
+		f.rotateRight()
+		XCTAssertEqual(f, original)
+	}
+
+	func testFourRotationsMatchTwoFlipsAfterTwoQuarterTurns() {
+		var rotated = film(width: 3, height: 2, frames: 2)
+		rotated.rotateRight()
+		rotated.rotateRight()
+
+		var flipped = film(width: 3, height: 2, frames: 2)
+		flipped.flipHorizontally()
+		flipped.flipVertically()
+
+		XCTAssertEqual(rotated, flipped)
+	}
+
+	func testEveryFrameIsTransformedIndependently() {
+		var f = film(width: 2, height: 2, frames: 2)
+		let p = f.pxs
+		f.rotateRight()
+
+		XCTAssertEqual(f.size, FilmSize(width: 2, height: 2, frames: 2))
+		XCTAssertEqual(Array(f.pxs.prefix(4)), [p[2], p[0], p[3], p[1]])
+		XCTAssertEqual(Array(f.pxs.suffix(4)), [p[6], p[4], p[7], p[5]])
+	}
+
+	func testSingleRowAndSingleColumnFilmsTranspose() {
+		var row = Film(width: 3, height: 1, frames: 1, color: .clear)
+		row.pxs = [Px(rgb: 0x0000FF), Px(rgb: 0x00FF00), Px(rgb: 0xFF0000)]
+		let p = row.pxs
+
+		row.rotateRight()
+		XCTAssertEqual(row.size, FilmSize(width: 1, height: 3, frames: 1))
+		XCTAssertEqual(row.pxs, [p[0], p[1], p[2]])
+
+		row.rotateRight()
+		XCTAssertEqual(row.size, FilmSize(width: 3, height: 1, frames: 1))
+		XCTAssertEqual(row.pxs, [p[2], p[1], p[0]])
+	}
+}
+
+@MainActor
+final class TransformOperationTests: XCTestCase {
+
+	func testTransformsDropAStaleSelection() {
+		let harness = Harness(film: Film(width: 3, height: 2, frames: 1, color: .clear))
+		let transforms: [(String, (Operations) -> () -> Void)] = [
+			("rotateLeft", { op in op.rotateLeft }),
+			("rotateRight", { op in op.rotateRight }),
+			("flipHorizontally", { op in op.flipHorizontally }),
+			("flipVertically", { op in op.flipVertically }),
+		]
+
+		for (name, transform) in transforms {
+			harness.state.selection = Selection(BitSet(count: harness.film.size.count, filled: true))
+			transform(harness.operations)()
+			XCTAssertEqual(harness.state.selection, .none, name)
+		}
+	}
+
+	func testRotatingSwapsTheFilmDimensionsThroughOperations() {
+		let harness = Harness(film: Film(width: 4, height: 2, frames: 1, color: .clear))
+
+		harness.operations.rotateRight()
+		XCTAssertEqual(harness.film.size, FilmSize(width: 2, height: 4, frames: 1))
+
+		harness.operations.rotateLeft()
+		XCTAssertEqual(harness.film.size, FilmSize(width: 4, height: 2, frames: 1))
+
+		harness.operations.flipHorizontally()
+		XCTAssertEqual(harness.film.size, FilmSize(width: 4, height: 2, frames: 1))
+	}
+}
+
 @MainActor
 private final class Harness {
 	var state = EditorState()

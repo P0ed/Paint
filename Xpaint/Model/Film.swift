@@ -85,6 +85,67 @@ extension Film {
 	}
 }
 
+extension Film {
+
+	mutating func flipHorizontally() {
+		for frame in indices {
+			withMutableLayer(frame) { [size] pxs in
+				for row in 0 ..< size.height {
+					for column in 0 ..< size.width / 2 {
+						pxs.swapAt(
+							column + row * size.width,
+							size.width - 1 - column + row * size.width
+						)
+					}
+				}
+			}
+		}
+	}
+
+	mutating func flipVertically() {
+		for frame in indices {
+			withMutableLayer(frame) { [size] pxs in
+				for row in 0 ..< size.height / 2 {
+					for column in 0 ..< size.width {
+						pxs.swapAt(
+							column + row * size.width,
+							column + (size.height - 1 - row) * size.width
+						)
+					}
+				}
+			}
+		}
+	}
+
+	mutating func rotateRight() {
+		self = rotated { row, column, size in
+			row + (size.height - 1 - column) * size.width
+		}
+	}
+
+	mutating func rotateLeft() {
+		self = rotated { row, column, size in
+			size.width - 1 - row + column * size.width
+		}
+	}
+
+	private func rotated(_ source: (Int, Int, FilmSize) -> Int) -> Film {
+		var new = Film(width: size.height, height: size.width, frames: size.frames, color: .none)
+
+		for frame in indices {
+			let offset = size.count * frame
+			new.withMutableLayer(frame) { [size, pxs] dst in
+				for row in 0 ..< size.width {
+					for column in 0 ..< size.height {
+						dst[column + row * size.height] = pxs[offset + source(row, column, size)]
+					}
+				}
+			}
+		}
+
+		return new
+	}
+}
 
 extension Film {
 

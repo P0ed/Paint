@@ -99,6 +99,22 @@ extension Operations {
 	func invertSelection() {
 		state.invertSelection(size: film.size)
 	}
+
+	func rotateLeft() {
+		transformFilm { film in film.rotateLeft() }
+	}
+
+	func rotateRight() {
+		transformFilm { film in film.rotateRight() }
+	}
+
+	func flipHorizontally() {
+		transformFilm { film in film.flipHorizontally() }
+	}
+
+	func flipVertically() {
+		transformFilm { film in film.flipVertically() }
+	}
 }
 
 private extension Operations {
@@ -110,6 +126,11 @@ private extension Operations {
 				body(&pixels[index])
 			}
 		}
+	}
+
+	func transformFilm(_ transform: (inout Film) -> Void) {
+		transform(&film)
+		state.resetTransientInteractions()
 	}
 
 	func transformLayer(_ transform: (inout Film, Int) -> Void) {
