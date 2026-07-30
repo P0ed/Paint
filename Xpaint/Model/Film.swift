@@ -64,6 +64,25 @@ extension Film {
 
 		self = new
 	}
+
+	mutating func resizeCanvas(width: Int, height: Int) {
+		var new = Film(width: width, height: height, frames: size.frames, color: .none)
+		let rows = min(size.height, height)
+		let columns = min(size.width, width)
+
+		for frame in indices {
+			let offset = size.count * frame
+			new.withMutableLayer(frame) { [size, pxs] dst in
+				for row in 0 ..< rows {
+					for column in 0 ..< columns {
+						dst[column + row * width] = pxs[offset + column + row * size.width]
+					}
+				}
+			}
+		}
+
+		self = new
+	}
 }
 
 

@@ -95,6 +95,14 @@ struct MenuCommands: Commands {
 				action: { op?.state.sizeDialogPresented = true }
 			)
 			ActionButton(
+				name: "Resize canvas",
+				image: "square.resize",
+				shortcut: "R",
+				modifiers: [.command, .shift],
+				disabled: op.actionsDisabled,
+				action: { op?.state.canvasDialogPresented = true }
+			)
+			ActionButton(
 				name: "Wipe",
 				image: "windshield.rear.and.wiper",
 				shortcut: KeyEquivalent.delete.character,
@@ -102,8 +110,8 @@ struct MenuCommands: Commands {
 				action: { op?.wipeLayer() }
 			)
 			ActionButton(
-				name: "Fill",
-				image: "paintbrush.fill",
+				name: "Wipe filling",
+				image: "windshield.rear.and.wiper.and.drop",
 				shortcut: KeyEquivalent.delete.character,
 				modifiers: .option,
 				disabled: op.actionsDisabled,

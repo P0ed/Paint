@@ -430,6 +430,75 @@ final class SelectionClippingTests: XCTestCase {
 	}
 }
 
+final class CanvasResizeTests: XCTestCase {
+	private let red = Px(rgb: 0x0000FF)
+	private let green = Px(rgb: 0x00FF00)
+	private let blue = Px(rgb: 0xFF0000)
+
+	private func film(width: Int, height: Int, frames: Int = 1) -> Film {
+		var film = Film(width: width, height: height, frames: frames, color: .clear)
+		film.pxs = (0..<film.pxs.count).map { index in
+			Px(alpha: 255, red: UInt8(index + 1), green: 0, blue: 0)
+		}
+		return film
+	}
+
+	func testShrinkingClipsFromTheTopLeftWithoutResampling() {
+		var f = film(width: 3, height: 2)
+		let original = f.pxs
+		f.resizeCanvas(width: 2, height: 1)
+
+		XCTAssertEqual(f.size, FilmSize(width: 2, height: 1, frames: 1))
+		XCTAssertEqual(f.pxs, [original[0], original[1]])
+	}
+
+	func testGrowingKeepsThePixelsAndPadsWithTransparency() {
+		var f = film(width: 3, height: 2)
+		let original = f.pxs
+		f.resizeCanvas(width: 4, height: 3)
+
+		XCTAssertEqual(f.size, FilmSize(width: 4, height: 3, frames: 1))
+		XCTAssertEqual(f.pxs, [
+			original[0], original[1], original[2], .clear,
+			original[3], original[4], original[5], .clear,
+			.clear, .clear, .clear, .clear,
+		])
+	}
+
+	func testResizingClipsAndPadsEveryFrameIndependently() {
+		var f = film(width: 2, height: 2, frames: 2)
+		let original = f.pxs
+		f.resizeCanvas(width: 3, height: 1)
+
+		XCTAssertEqual(f.size, FilmSize(width: 3, height: 1, frames: 2))
+		XCTAssertEqual(f.pxs, [
+			original[0], original[1], .clear,
+			original[4], original[5], .clear,
+		])
+	}
+
+	func testResizingToTheSameSizeIsIdentity() {
+		var f = film(width: 3, height: 2, frames: 2)
+		let original = f
+		f.resizeCanvas(width: 3, height: 2)
+
+		XCTAssertEqual(f, original)
+	}
+
+	func testClippedPixelsAreDiscardedRatherThanStretched() {
+		var f = Film(width: 2, height: 1, frames: 1, color: .clear)
+		f.pxs = [red, green]
+		f.resizeCanvas(width: 1, height: 1)
+		XCTAssertEqual(f.pxs, [red])
+
+		f.resizeCanvas(width: 2, height: 1)
+		XCTAssertEqual(f.pxs, [red, .clear])
+		XCTAssertNotEqual(f.pxs, [red, green])
+		XCTAssertNotEqual(f.pxs, [red, red])
+		XCTAssertNotEqual(f.pxs.last, blue)
+	}
+}
+
 @MainActor
 private final class Harness {
 	var state = EditorState()

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct SizeDialog: View {
+	var action: String = "Resize"
 	var size: FilmSize
 	var confirm: (Int, Int) -> Void
 
@@ -17,7 +18,7 @@ struct SizeDialog: View {
 
 	var body: some View {
 		Dialog(
-			action: "Resize",
+			action: action,
 			isValid: isValid,
 			confirm: { if let w, let h { confirm(w, h) } }
 		) {

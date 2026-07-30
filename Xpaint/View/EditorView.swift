@@ -32,6 +32,7 @@ struct EditorView<ContentType: TypeProvider>: View {
 			state.exportedFilm = nil
 		}
 		.sheet(isPresented: $state.sizeDialogPresented) { sizeDialog }
+		.sheet(isPresented: $state.canvasDialogPresented) { canvasDialog }
 		.sheet(isPresented: $state.colorDialogPresented) { colorDialog }
 		.sheet(isPresented: $state.shaderDialogPresented) { shaderDialog }
 	}
@@ -39,6 +40,13 @@ struct EditorView<ContentType: TypeProvider>: View {
 	var sizeDialog: some View {
 		SizeDialog(size: film.size) { w, h in
 			film.resize(width: w, height: h)
+			state.resetTransientInteractions()
+		}
+	}
+
+	var canvasDialog: some View {
+		SizeDialog(action: "Resize canvas", size: film.size) { w, h in
+			film.resizeCanvas(width: w, height: h)
 			state.resetTransientInteractions()
 		}
 	}

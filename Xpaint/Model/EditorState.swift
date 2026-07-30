@@ -20,6 +20,7 @@ struct EditorState: Equatable {
 	var scrollPosition: ScrollPosition = .init(point: .zero)
 	var magnification: CGFloat = 1.0
 	var sizeDialogPresented: Bool = false
+	var canvasDialogPresented: Bool = false
 	var colorDialogPresented: Bool = false
 	var shaderDialogPresented: Bool = false
 	var exporting: Bool = false
@@ -242,6 +243,6 @@ extension Tool {
 extension EditorState {
 
 	var dialogPresented: Bool {
-		colorDialogPresented || sizeDialogPresented || shaderDialogPresented
+		colorDialogPresented || sizeDialogPresented || canvasDialogPresented || shaderDialogPresented
 	}
 }
